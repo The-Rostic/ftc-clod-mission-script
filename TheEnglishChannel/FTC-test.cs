@@ -43,7 +43,7 @@ public class Mission : AMission
     public override void OnPlaceLeave(Player player, AiActor actor, int placeIndex)
     {
         base.OnPlaceLeave(player, actor, placeIndex);
-        CLog.Write("OnPlaceEnter player=" + player.Name() + " actor=" + actor.Name() + " placeIdx=" + placeIndex.ToString());
+        CLog.Write("OnPlaceLeave player=" + player.Name() + " actor=" + actor.Name() + " placeIdx=" + placeIndex.ToString());
         m_KillDisusedPlanes.OnPlaceLeave(player, actor, placeIndex);
     }
 

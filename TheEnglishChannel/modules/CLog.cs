@@ -43,7 +43,9 @@ public static class CLog
             try
             {
                 DateTime dt = DateTime.Now;
-                string dir = Path.GetDirectoryName(m_Mission.PathMyself) + @"\Logs";
+                string m_sUserDoc = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + @"\1C SoftClub\il-2 sturmovik cliffs of dover\";
+                string m_sMyFolder = Path.GetDirectoryName(m_Mission.sPathMyself);
+                string dir = m_sUserDoc + m_sMyFolder + @"\Logs";
                 // make logs dir if not exists
                 if (!Directory.Exists(dir))
                 {
@@ -51,28 +53,28 @@ public static class CLog
                 }
 
                 // keep only last 9 logfiles
-                //try
-                //{
-                //    if (File.Exists(dir + "\\Log_9.log"))
-                //    {
-                //        File.Delete(dir + "\\Log_9.log");
-                //    }
-                //    for (int i = 8; i > 0; i--)
-                //    {
-                //        string efn = dir + "\\Log_" + i.ToString() + ".log";
-                //        if (File.Exists(efn))
-                //        {
-                //            File.Move(efn, dir + "\\Log_" + (i + 1).ToString() + ".log");
-                //        }
-                //    }
-                //}
-                //catch(Exception ex)
-                //{
-                //    Write(ex.ToString());
-                //}
-                //m_LogFile = File.CreateText(dir + "\\Log_1.log");
+                try
+                {
+                    if (File.Exists(dir + "\\Log_9.log"))
+                    {
+                        File.Delete(dir + "\\Log_9.log");
+                    }
+                    for (int i = 8; i > 0; i--)
+                    {
+                        string efn = dir + "\\Log_" + i.ToString() + ".log";
+                        if (File.Exists(efn))
+                        {
+                            File.Move(efn, dir + "\\Log_" + (i + 1).ToString() + ".log");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Write(ex.ToString());
+                }
+                m_LogFile = File.CreateText(dir + "\\Log_1.log");
 
-                m_LogFile = File.CreateText(dir + "\\" + dt.Year.ToString("0000") + dt.Month.ToString("00") + dt.Day.ToString("00") + dt.Hour.ToString("00") + dt.Minute.ToString("00") + dt.Second.ToString("00") + ".log");
+                //m_LogFile = File.CreateText(dir + "\\" + dt.Year.ToString("0000") + dt.Month.ToString("00") + dt.Day.ToString("00") + dt.Hour.ToString("00") + dt.Minute.ToString("00") + dt.Second.ToString("00") + ".log");
             }
             catch (Exception ex)
             {

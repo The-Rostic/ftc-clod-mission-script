@@ -93,7 +93,7 @@ public class CKillDisusedPlanes {
 
             if (!IsAiControlledPlane(Aircraft))
             {
-                if (DEBUG_MESSAGES) CLog.Write("Damage/destroy " + ActorMain.Name() + " cancelled. PLayer " + CurPlayer.Name() + " still in aircraft.");
+                if (DEBUG_MESSAGES) CLog.Write("Damage/destroy " + ActorMain.Name() + " cancelled. Player " + CurPlayer.Name() + " still in aircraft.");
                 return;
             }
 
