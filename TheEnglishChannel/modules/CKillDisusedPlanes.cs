@@ -31,8 +31,10 @@
 ///     ...
 
 using System;
+using System.Threading;
 using maddox.game;       /// AMission
 using maddox.game.world; /// AiActor
+using maddox.GP;
 
 public class CKillDisusedPlanes {
     /// Set to true to see debug messages in server messages
@@ -40,9 +42,9 @@ public class CKillDisusedPlanes {
     
     protected AMission m_Mission = null;
     /// number of seconds to wait between damage and destroy just spawned or landed aircraft
-    protected int m_iSecondsUntilRemove = 2;
+    protected int m_iSecondsUntilRemoveAtFriendlyBase = 1;
     /// number of seconds to wait between damage and destroy airborne aircraft
-    protected int m_iSecondsUntilRemoveAirborne = 9999;
+    protected int m_iSecondsUntilRemoveAbandoned = 9999;
 
     /// <summary>
     /// Constructor
@@ -101,11 +103,11 @@ public class CKillDisusedPlanes {
             {
                 return;
             }
-            
+
             /// Make Damage
             /// We wrap in try ... catch to make sure at least *some* of them are effected
             /// no matter what happens (e.g. the Wing part throws on Blenheims)
-            
+
             /// Damage named parts
             try
             {
@@ -117,9 +119,9 @@ public class CKillDisusedPlanes {
                 Aircraft.hitNamed(part.NamedDamageTypes.ElecPrimaryFailure);
                 Aircraft.hitNamed(part.NamedDamageTypes.ElecBatteryFailure);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
-                if(DEBUG_MESSAGES) CLog.Write("Exception on damaging named parts: "+e.ToString());
+                if (DEBUG_MESSAGES) CLog.Write("Exception on damaging named parts: " + e.ToString());
             }
 
             /// Damage wings
@@ -142,22 +144,71 @@ public class CKillDisusedPlanes {
             try
             {
                 int iNumOfEngines = (Aircraft.Group() as AiAirGroup).aircraftEnginesNum();
-                
+
                 for (int i = 0; i < iNumOfEngines; i++)
                 {
                     Aircraft.hitNamed((part.NamedDamageTypes)Enum.Parse(typeof(part.NamedDamageTypes), "Eng" + i.ToString() + "TotalFailure"));
                 }
             }
-            catch(Exception e)
+            catch (Exception e)
             {
-                if(DEBUG_MESSAGES) CLog.Write("Exception on damageing engines: " +e.ToString());
+                if (DEBUG_MESSAGES) CLog.Write("Exception on damageing engines: " + e.ToString());
             }
-            
-            if(DEBUG_MESSAGES) CLog.Write("Will destroy " + ActorMain.Name());
-            
-            m_Mission.Timeout(m_iSecondsUntilRemove, () => { 
-                DestroyPlane(Aircraft);
-            });
+
+            double destroyTimeout = m_iSecondsUntilRemoveAbandoned;
+            bool atFriendlyAirfield = false;
+            if (!Aircraft.IsAirborne())
+            {
+                if (DEBUG_MESSAGES) CLog.Write(ActorMain.Name() + " is on the ground.");
+                Point3d aircraftPos = Aircraft.Pos();
+                int playerArmy = CurPlayer.Army();
+                AiAirport[] airports = m_Mission.GamePlay.gpAirports();
+                AiAirport airportFriendly, airportNeutral;
+                Point3d airportNeutralPos;
+                for (int i = 0; i < airports.Length; i++)
+                {
+                    airportNeutral = airports[i];
+                    // get neutral airfileds with friendly spawn area airports nearby...
+                    if (airportNeutral.Army() == 0)
+                    {
+                        airportNeutralPos = airportNeutral.Pos();
+                        for (int j = 0; j < airports.Length; j++)
+                        {
+                            if (i == j) continue;
+                            airportFriendly = airports[j];
+                            if (airportFriendly.Army() == playerArmy)
+                            {
+                                Point3d airportFriendlyPos = airportFriendly.Pos();
+                                if (airportNeutralPos.distanceLinf(ref airportFriendlyPos) < 2500)
+                                {
+                                    // Ok, this neutral airport contain friendly spawn area airport. Check if we are in this neutral airport radius
+                                    double distToAirportNeutral = airportNeutralPos.distanceLinf(ref aircraftPos);
+                                    if (distToAirportNeutral < airportNeutral.CoverageR())
+                                    {
+                                        destroyTimeout = m_iSecondsUntilRemoveAtFriendlyBase;
+                                        if (DEBUG_MESSAGES) CLog.Write("Will destroy " + ActorMain.Name() + " instantly on friendly airfiled " + airportNeutral.Name() + " distance " + distToAirportNeutral.ToString());
+                                        atFriendlyAirfield = true;
+                                        m_Mission.Timeout(destroyTimeout, () =>
+                                        {
+                                            DestroyPlane(Aircraft);
+                                        });
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        if (atFriendlyAirfield)
+                            break;
+                    }
+                }
+            }
+            else
+            {
+                if (DEBUG_MESSAGES) CLog.Write(ActorMain.Name() + " is airborne.");
+            }
+            if (!atFriendlyAirfield) {
+                if (DEBUG_MESSAGES) CLog.Write("Will not be destroy " + ActorMain.Name() + " due to abbandoned aircraft.");
+            }
         }
     }
     /// <summary>

@@ -9,7 +9,6 @@ public static class CLog
 {
     private static AMission m_Mission = null;
 
-    private static object m_SyncRoot = new object();
     private static StreamWriter m_LogFile;
     /// <summary>
     /// this variable set to true only when new data written to log file
@@ -88,7 +87,7 @@ public static class CLog
     /// <summary>
     /// Close log file
     /// </summary>
-    public static  void Close()
+    public static void Close()
     {
         if (m_LogFile != null)
         {
@@ -108,53 +107,47 @@ public static class CLog
     /// <param name="message">message to log</param>
     public static void Write(string message)
     {
-        lock (m_SyncRoot)
+        if ((CConfig.DEBUG_SERVER_LOG_ENABLE) || (m_LogFile != null))
         {
-            if ((CConfig.DEBUG_SERVER_LOG_ENABLE) || (m_LogFile != null))
+            DateTime dt = DateTime.Now;
+            string logmsg = dt.ToString("H:mm:ss,") + dt.Millisecond.ToString("000") + " : " + message;
+
+            if (m_LogFile != null)
             {
-                DateTime dt = DateTime.Now;
-                string logmsg = dt.ToString("H:mm:ss,") + dt.Millisecond.ToString("000") + " : " + message;
-
-                if (m_LogFile != null)
+                try
                 {
-                    try
-                    {
-                        m_LogFile.WriteLine(logmsg);
-                        m_NeedFlush = true;
-                    }
-                    catch
-                    {
-                    }
+                    m_LogFile.WriteLine(logmsg);
+                    m_NeedFlush = true;
                 }
-
-                if (CConfig.DEBUG_SERVER_LOG_ENABLE)
+                catch
                 {
-                    m_Mission.GamePlay.gpLogServer(logmsg);
                 }
+            }
+
+            if (CConfig.DEBUG_SERVER_LOG_ENABLE)
+            {
+                m_Mission.GamePlay.gpLogServer(logmsg);
             }
         }
     }
     /// <summary>
     /// Flush data to disk immidiatly!
     /// </summary>
-    public static  void FlushBuffers()
+    public static void FlushBuffers()
     {
-        lock (m_SyncRoot)
+        if (CConfig.DEBUG_LOCAL_LOG_ENABLE)
         {
-            if (CConfig.DEBUG_LOCAL_LOG_ENABLE)
+            try
             {
-                try
+                if ((MissionRunningTime.TotalSeconds - m_LastFlush.TotalSeconds > 30) && m_NeedFlush)
                 {
-                    if ((MissionRunningTime.TotalSeconds - m_LastFlush.TotalSeconds > 30) && m_NeedFlush)
-                    {
-                        m_LastFlush = MissionRunningTime;
-                        m_LogFile.Flush();
-                        m_NeedFlush = false;
-                    }
+                    m_LastFlush = MissionRunningTime;
+                    m_LogFile.Flush();
+                    m_NeedFlush = false;
                 }
-                catch
-                {
-                }
+            }
+            catch
+            {
             }
         }
     }

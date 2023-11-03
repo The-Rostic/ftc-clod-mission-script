@@ -8,6 +8,7 @@ using System.ComponentModel;
 using System.Threading;
 using System.Diagnostics;
 using part;
+using maddox.GP;
 
 //$include .\modules\CConfig.cs
 //$include .\modules\CKillDisusedPlanes.cs
@@ -25,7 +26,20 @@ public class Mission : AMission
         CLog.Write("OnBattleStarted");
         // listen all the mission
         this.MissionNumberListener = -1;
-    }
+
+        //// Get list of all airfields on the map
+        //for (int i = 0; i < GamePlay.gpAirports().Length; i++)
+        //{
+        //    AiAirport airport = GamePlay.gpAirports()[i];
+        //    Point3d airpPos = airport.Pos();
+        //    CLog.Write(airport.Name() 
+        //        + " at X="+ airpPos.x.ToString() + " Y=" + airpPos.y.ToString() + " Z=" + airpPos.z.ToString()
+        //        + " army=" + airport.Army().ToString()
+        //        + " CoverageR="+ airport.CoverageR().ToString()
+        //        + " FieldR=" + airport.FieldR().ToString()
+        //        );
+        //}
+       }
 
     public override void OnBattleStoped()
     {
