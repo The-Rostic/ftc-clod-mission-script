@@ -9,8 +9,12 @@ using System.Threading;
 using System.Diagnostics;
 using part;
 
+//$include .\modules\config.cs
+
 public class Mission : AMission
 {
+    private CConfig config = new CConfig();
+
     public override void OnBattleStarted()
     {
         base.OnBattleStarted();
