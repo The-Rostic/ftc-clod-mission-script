@@ -81,7 +81,7 @@ public class CKillDisusedPlanes {
     /// <param name="ActorMain"></param>
     protected void DamagePlane(AiActor ActorMain, Player CurPlayer)
     {
-        if (DEBUG_MESSAGES) CLog.Write(ActorMain.Name() + "will damage/destroy aircraft left by player" + CurPlayer.Name());
+        if (DEBUG_MESSAGES) CLog.Write(ActorMain.Name() + " will damage/destroy aircraft left by player " + CurPlayer.Name());
         foreach (AiActor actor in ActorMain.Group().GetItems())
         {
             if (actor == null || !(actor is AiAircraft))
@@ -93,7 +93,7 @@ public class CKillDisusedPlanes {
 
             if (!IsAiControlledPlane(Aircraft))
             {
-                if (DEBUG_MESSAGES) CLog.Write("damage/destroy cancelled. PLayer still in aircraft.");
+                if (DEBUG_MESSAGES) CLog.Write("Damage/destroy " + ActorMain.Name() + " cancelled. PLayer " + CurPlayer.Name() + " still in aircraft.");
                 return;
             }
 
@@ -153,7 +153,7 @@ public class CKillDisusedPlanes {
                 if(DEBUG_MESSAGES) CLog.Write("Exception on damageing engines: " +e.ToString());
             }
             
-            if(DEBUG_MESSAGES) CLog.Write("will destroy");
+            if(DEBUG_MESSAGES) CLog.Write("Will destroy " + ActorMain.Name());
             
             m_Mission.Timeout(m_iSecondsUntilRemove, () => { 
                 DestroyPlane(Aircraft);
