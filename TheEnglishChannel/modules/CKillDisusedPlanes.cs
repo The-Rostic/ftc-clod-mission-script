@@ -157,7 +157,24 @@ public class CKillDisusedPlanes {
 
             double destroyTimeout = m_iSecondsUntilRemoveAbandoned;
             bool atFriendlyAirfield = false;
+            bool aircraftIsOnTheGround = false;
             if (!Aircraft.IsAirborne())
+            {
+                aircraftIsOnTheGround = true;
+                if (DEBUG_MESSAGES) CLog.Write(ActorMain.Name() + " is not airborne.");
+            }
+            else
+            {
+                double aircraftAGL = Aircraft.getParameter(part.ParameterTypes.Z_AltitudeAGL, -1);
+                double aircraftTAS = Aircraft.getParameter(part.ParameterTypes.Z_VelocityTAS, -1);
+                if (DEBUG_MESSAGES) CLog.Write(ActorMain.Name() + " is AGL=" + aircraftAGL.ToString()+"m and TAS=" + aircraftTAS.ToString() + "m/s");
+                if ((aircraftAGL < 5) && (aircraftTAS < 3.6))
+                {
+                    aircraftIsOnTheGround = true;
+                }
+            }
+
+            if (aircraftIsOnTheGround)
             {
                 if (DEBUG_MESSAGES) CLog.Write(ActorMain.Name() + " is on the ground.");
                 Point3d aircraftPos = Aircraft.Pos();
