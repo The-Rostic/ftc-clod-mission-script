@@ -179,7 +179,7 @@ public class CKillDisusedPlanes {
                             if (airportFriendly.Army() == playerArmy)
                             {
                                 Point3d airportFriendlyPos = airportFriendly.Pos();
-                                if (airportNeutralPos.distanceLinf(ref airportFriendlyPos) < 2500)
+                                if (airportNeutralPos.distanceLinf(ref airportFriendlyPos) < airportNeutral.CoverageR())
                                 {
                                     // Ok, this neutral airport contain friendly spawn area airport. Check if we are in this neutral airport radius
                                     double distToAirportNeutral = airportNeutralPos.distanceLinf(ref aircraftPos);
