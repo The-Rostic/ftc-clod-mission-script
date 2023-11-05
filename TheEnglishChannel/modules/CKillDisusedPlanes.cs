@@ -78,7 +78,14 @@ public class CKillDisusedPlanes {
     /// <param name="ActorMain"></param>
     protected void DamagePlane(AiActor ActorMain, Player CurPlayer)
     {
-        if (DEBUG_MESSAGES) CLog.Write("Try to destroy aircraft" + ActorMain.Name() + " that was controlled by player " + CurPlayer.Name());
+        if (DEBUG_MESSAGES) CLog.Write("Try to damage/destroy aircraft" + ActorMain.Name() + " that was controlled by player " + CurPlayer.Name());
+
+        if (ActorMain == null)
+        {
+            if (DEBUG_MESSAGES) CLog.Write("Damage/destroy cancelled due to (ActorMain == null).");
+            return;
+        }
+
         if (!(ActorMain is AiAircraft))
         {
             if (DEBUG_MESSAGES) CLog.Write("Damage/destroy " + ActorMain.Name() + " cancelled. ActorMain is NOT AiAircraft");
@@ -93,61 +100,87 @@ public class CKillDisusedPlanes {
             return;
         }
 
+        if (!Aircraft.IsAlive())
+        {
+            if (DEBUG_MESSAGES) CLog.Write("Damage/destroy " + ActorMain.Name() + " cancelled due to it is NOT ALIVE already.");
+            return;
+        }
+
+        // If REALISTIC_DESPAWN disabled just destroy plane fast.
+        if (!CConfig.REALISTIC_DESPAWN)
+        {
+            if (DEBUG_MESSAGES) CLog.Write("Aircraft " + Aircraft.Name() + " will be destroyed immediately.");
+            m_Mission.Timeout(1, () =>
+            {
+                DestroyPlane(Aircraft);
+            });
+            return;
+        }
+
         /// Make Damage
         /// We wrap in try ... catch to make sure at least *some* of them are effected
         /// no matter what happens (e.g. the Wing part throws on Blenheims)
-
-        Aircraft.RefuelPlane(0); // without fuel AI cant move to faraway
-
-        /// Damage named parts
-        try
+        Mission.EAircraftLocation aircraftLocation = (m_Mission as Mission).GetAircraftLocation(Aircraft);
+        if (aircraftLocation == Mission.EAircraftLocation.Airborne)
         {
-            Aircraft.hitNamed(part.NamedDamageTypes.ControlsElevatorDisabled);
-            Aircraft.hitNamed(part.NamedDamageTypes.ControlsAileronsDisabled);
-            Aircraft.hitNamed(part.NamedDamageTypes.ControlsRudderDisabled);
-            Aircraft.hitNamed(part.NamedDamageTypes.FuelPumpFailure);
-            Aircraft.hitNamed(part.NamedDamageTypes.Eng0TotalFailure);
-            Aircraft.hitNamed(part.NamedDamageTypes.ElecPrimaryFailure);
-            Aircraft.hitNamed(part.NamedDamageTypes.ElecBatteryFailure);
-        }
-        catch (Exception e)
-        {
-            if (DEBUG_MESSAGES) CLog.Write("Exception on damaging named parts: " + e.ToString());
-        }
-
-        /// Damage wings
-        //try
-        //{
-        //    Aircraft.hitLimb(part.LimbNames.WingL1, -0.5);
-        //    Aircraft.hitLimb(part.LimbNames.WingL2, -0.5);
-        //    Aircraft.hitLimb(part.LimbNames.WingL3, -0.5);
-        //    Aircraft.hitLimb(part.LimbNames.WingL4, -0.5);
-        //    Aircraft.hitLimb(part.LimbNames.WingL5, -0.5);
-        //    Aircraft.hitLimb(part.LimbNames.WingL6, -0.5);
-        //    Aircraft.hitLimb(part.LimbNames.WingL7, -0.5);
-        //}
-        //catch(Exception e)
-        //{
-        //    if(DEBUG_MESSAGES) CLog.Write("Exception on damaging wings: "+e.ToString());
-        //}
-
-        /// Damage engines
-        try
-        {
-            int iNumOfEngines = (Aircraft.Group() as AiAirGroup).aircraftEnginesNum();
-
-            for (int i = 0; i < iNumOfEngines; i++)
+            if (DEBUG_MESSAGES) CLog.Write("Aircraft" + ActorMain.Name() + " airborne. Damage will be done now to prevent AI control");
+            /// Damage named parts
+            try
             {
-                Aircraft.hitNamed((part.NamedDamageTypes)Enum.Parse(typeof(part.NamedDamageTypes), "Eng" + i.ToString() + "TotalFailure"));
+                Aircraft.hitNamed(part.NamedDamageTypes.ControlsElevatorDisabled);
+                Aircraft.hitNamed(part.NamedDamageTypes.ControlsAileronsDisabled);
+                Aircraft.hitNamed(part.NamedDamageTypes.ControlsRudderDisabled);
+                Aircraft.hitNamed(part.NamedDamageTypes.FuelPumpFailure);
+                Aircraft.hitNamed(part.NamedDamageTypes.Eng0TotalFailure);
+                Aircraft.hitNamed(part.NamedDamageTypes.ElecPrimaryFailure);
+                Aircraft.hitNamed(part.NamedDamageTypes.ElecBatteryFailure);
+            }
+            catch (Exception e)
+            {
+                if (DEBUG_MESSAGES) CLog.Write("Exception on damaging named parts: " + e.ToString());
+            }
+
+            /// Damage wings
+            //try
+            //{
+            //    Aircraft.hitLimb(part.LimbNames.WingL1, -0.5);
+            //    Aircraft.hitLimb(part.LimbNames.WingL2, -0.5);
+            //    Aircraft.hitLimb(part.LimbNames.WingL3, -0.5);
+            //    Aircraft.hitLimb(part.LimbNames.WingL4, -0.5);
+            //    Aircraft.hitLimb(part.LimbNames.WingL5, -0.5);
+            //    Aircraft.hitLimb(part.LimbNames.WingL6, -0.5);
+            //    Aircraft.hitLimb(part.LimbNames.WingL7, -0.5);
+            //}
+            //catch(Exception e)
+            //{
+            //    if(DEBUG_MESSAGES) CLog.Write("Exception on damaging wings: "+e.ToString());
+            //}
+
+            /// Damage engines
+            try
+            {
+                int iNumOfEngines = (Aircraft.Group() as AiAirGroup).aircraftEnginesNum();
+
+                for (int i = 0; i < iNumOfEngines; i++)
+                {
+                    Aircraft.hitNamed((part.NamedDamageTypes)Enum.Parse(typeof(part.NamedDamageTypes), "Eng" + i.ToString() + "TotalFailure"));
+                }
+            }
+            catch (Exception e)
+            {
+                if (DEBUG_MESSAGES) CLog.Write("Exception on damageing engines: " + e.ToString());
             }
         }
-        catch (Exception e)
+        else
         {
-            if (DEBUG_MESSAGES) CLog.Write("Exception on damageing engines: " + e.ToString());
+            if (DEBUG_MESSAGES) CLog.Write("Aircraft " + ActorMain.Name() + " on the ground, no damage, just remove fuel from tanks for AI");
+            // aircraft on the ground, no need to brake it. Without fuel AI cant move to faraway
+            Aircraft.RefuelPlane(0);
         }
 
         int iDestroyTimeout = TIMEOUT_ABANDONED;
-        if ( (m_Mission as Mission).IsAircraftAtFriendlyAirfield(Aircraft) )
+        if((aircraftLocation == Mission.EAircraftLocation.FriendlyAirfield)
+        || (aircraftLocation == Mission.EAircraftLocation.EnemyAirfield))
         {
             iDestroyTimeout = TIMEOUT_ATFRIENDLYBASE;
             if (!Aircraft.IsAirborne())
@@ -159,10 +192,15 @@ public class CKillDisusedPlanes {
         // Destroy time! ... maybe.
         if (iDestroyTimeout > -1)
         {
+            if (DEBUG_MESSAGES) CLog.Write("Aircraft " + Aircraft.Name() + " will be destroyed in " + iDestroyTimeout.ToString() + " seconds.");
             m_Mission.Timeout(iDestroyTimeout, () =>
             {
                 DestroyPlane(Aircraft);
             });
+        }
+        else
+        {
+            if (DEBUG_MESSAGES) CLog.Write("Aircraft " + Aircraft.Name() + " will be left abandoned. No destruction wil be done.");
         }
     }
     /// <summary>
@@ -172,8 +210,15 @@ public class CKillDisusedPlanes {
     {
         if (Aircraft != null)
         {
-            if (DEBUG_MESSAGES) CLog.Write("DestroyPlane() : aircraft " + Aircraft.Name() + " to be destroyed right now.");
-            Aircraft.Destroy();
+            if (IsAiControlledPlane(Aircraft))
+            {
+                if (DEBUG_MESSAGES) CLog.Write("DestroyPlane() : aircraft " + Aircraft.Name() + " to be destroyed right now.");
+                Aircraft.Destroy();
+            }
+            else
+            {
+                if (DEBUG_MESSAGES) CLog.Write("DestroyPlane() : aircraft " + Aircraft.Name() + " will not to be destroyed beacuase player was found inside this aircraft.");
+            }
         }
         else
         {
@@ -187,18 +232,25 @@ public class CKillDisusedPlanes {
     /// <returns>true if no real player is in any of the plane's positions</returns>
     public bool IsAiControlledPlane(AiAircraft Aircraft)
     {
-        if (Aircraft == null)
+        try
         {
-            return false;
-        }
-
-        /// check if a player is in any of the "places"
-        for (int i = 0; i < Aircraft.Places(); i++)
-        {
-            if (Aircraft.Player(i) != null)
+            if (Aircraft == null)
             {
                 return false;
             }
+
+            /// check if a player is in any of the "places"
+            for (int i = 0; i < Aircraft.Places(); i++)
+            {
+                if (Aircraft.Player(i) != null)
+                {
+                    return false;
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            if (DEBUG_MESSAGES) CLog.Write(e.ToString());
         }
 
         return true;

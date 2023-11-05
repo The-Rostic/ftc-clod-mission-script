@@ -41,37 +41,182 @@ public class Mission : AMission
     public override void OnPlaceEnter(Player player, AiActor actor, int placeIndex)
     {
         base.OnPlaceEnter(player, actor, placeIndex);
-        if (DEBUG_MESSAGES) CLog.Write("OnPlaceEnter player=" + player.Name() + " actor=" + actor.Name() + " placeIdx=" + placeIndex.ToString());
+        if (DEBUG_MESSAGES) CLog.Write("OnPlaceEnter player=" + ((player != null)?player.Name():"=null") + " actor=" + ((actor != null) ? actor.Name() : "=null") + " placeIdx=" + placeIndex.ToString());
     }
 
     public override void OnPlaceLeave(Player player, AiActor actor, int placeIndex)
     {
-        base.OnPlaceLeave(player, actor, placeIndex);
-        if (DEBUG_MESSAGES) CLog.Write("OnPlaceLeave player=" + player.Name() + " actor=" + actor.Name() + " placeIdx=" + placeIndex.ToString());
-        m_KillDisusedPlanes.OnPlaceLeave(player, actor, placeIndex);
+        try 
+        { 
+            base.OnPlaceLeave(player, actor, placeIndex);
+            if (DEBUG_MESSAGES) CLog.Write("OnPlaceLeave player=" + ((player != null) ? player.Name() : "=null") + " actor=" + ((actor != null) ? actor.Name() : "=null") + " placeIdx=" + placeIndex.ToString());
+            if (CConfig.DISABLE_LEAVE_MOVING_AIRCRAFT)
+            {
+                if ((player != null) && (actor != null) && player.IsConnected() && (actor is AiAircraft))
+                {
+                    AiAircraft aircraft = actor as AiAircraft;
+                    if (DEBUG_MESSAGES) CLog.Write("Player " + player.Name() + " is trying to leave aircraft " + aircraft.Name());
+                    bool isAiControlled = m_KillDisusedPlanes.IsAiControlledPlane(aircraft);
+                    if (isAiControlled || (placeIndex == 0)) //pilot cann't leave airborne aircraft even if another seat occupied
+                    {
+                        if (aircraft.IsAlive() && (aircraft.Person(0) != null) && (aircraft.Person(0).Health > 0) && aircraft.IsValid())
+                        {
+                            //EAircraftLocation aircraftLocation = GetAircraftLocation(aircraft);
+                            double aircraftTAS = aircraft.getParameter(part.ParameterTypes.Z_VelocityTAS, -1);
+                            // Do not  allow leave moving aircraft!
+                            if (aircraftTAS > 1.0)
+                            {
+                                if (DEBUG_MESSAGES) CLog.Write("Player " + player.Name() + " is about to enter pilot seat again " + aircraft.Name());
+                                player.PlaceEnter(actor, 0);
+                                Player[] recepients = { player };
+                                GamePlay.gpHUDLogCenter(recepients, "Bailout, crash or land and stop!");
+                                return;
+                            }
+                            if (!isAiControlled)
+                            {
+                                // Hey! Pilot left but 
+                                int primIdx = player.PlacePrimary();
+                                int secIdx = player.PlaceSecondary();
+                                if (DEBUG_MESSAGES) CLog.Write("Hey! Player still in aircraft! PlacePrimary=" + primIdx.ToString() + " PlaceSecondary=" + secIdx.ToString());
+                                if (primIdx >= 0)
+                                {
+                                    // have to generate new on leave event and do stuff there
+                                    Timeout(1, () =>
+                                    {
+                                        player.PlaceLeave(primIdx);
+                                    });
+                                    return;
+                                }
+                                if (secIdx >= 0)
+                                {
+                                    // have to generate new on leave event and do stuff there
+                                    Timeout(1, () =>
+                                    {
+                                        player.PlaceLeave(secIdx);
+                                    });
+                                    return;
+                                }
+                            }
+                            if (DEBUG_MESSAGES) CLog.Write("Ok, it is allowed to leave pilot seat.");
+                        }
+                        else
+                        {
+                            // (aircraft.IsAlive() && (aircraft.Person(0) != null) && (aircraft.Person(0).Health > 0) && aircraft.IsValid())
+                            if (DEBUG_MESSAGES)
+                            {
+                                string msg = "It seems like aricraft can't be piloted... "
+                                    + ((!aircraft.IsAlive()) ? "--- (!aircraft.IsAlive())" : "")
+                                    + ((aircraft.Person(0) == null) ? "--- (Person(0) == null)" : "")
+                                    + (((aircraft.Person(0) != null) && (aircraft.Person(0).Health == 0)) ? "--- (aircraft.Person(0).Health <= 0)" : "")
+                                    + ((!aircraft.IsValid()) ? "--- (!aircraft.IsValid())" : "");
+                                CLog.Write(msg);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        //if (isAiControlled || (placeIndex == 0))
+                        if (DEBUG_MESSAGES)
+                        {
+                            CLog.Write("It seems like aricraft still piloted... --- (!isAiControlled && (placeIndex != 0)) no need to call KillDisusedPlanes.OnPlaceLeave() just free place");
+                            return;
+                        }
+                    }
+                }
+                else
+                {
+                    //if ((player != null) && (actor != null) && player.IsConnected() && (actor is AiAircraft))
+                    if (DEBUG_MESSAGES)
+                    {
+                        string msg = "It seems like aricraft can't be piloted... "
+                            + ((player == null) ? "--- (player == null)" : "")
+                            + ((actor == null) ? "--- (actor == null)" : "")
+                            + ((!player.IsConnected()) ? "--- (!player.IsConnected())" : "")
+                            + (!(actor is AiAircraft) ? "--- (!(actor is AiAircraft))" : "");
+                        CLog.Write(msg);
+                    }
+                }
+            }
+            else
+            if (CConfig.DISABLE_AI_TO_FLY_WITH_PLAYER_IN_SECONDARY_PLACE)
+            {
+                //
+                // When trying to leave pilot place then leave all places in aircraft and then destroy it! Disable AI to fly mission!
+                //
+                if ((player != null) && (actor != null) && player.IsConnected() && (actor is AiAircraft))
+                {
+                    AiAircraft aircraft = actor as AiAircraft;
+                    if (DEBUG_MESSAGES) CLog.Write("Player " + player.Name() + " is trying to leave aircraft " + aircraft.Name());
+                    bool isAiControlled = m_KillDisusedPlanes.IsAiControlledPlane(aircraft);
+                    if ((placeIndex == 0) && !isAiControlled)
+                    {
+                        int primIdx = player.PlacePrimary();
+                        int secIdx = player.PlaceSecondary();
+                        if (DEBUG_MESSAGES) CLog.Write("Hey! Player still in aircraft! PlacePrimary=" + primIdx.ToString() + " PlaceSecondary=" + secIdx.ToString());
+                        if (primIdx >= 0)
+                        {
+                            // have to generate new on leave event and do stuff there
+                            Timeout(1, () =>
+                            {
+                                player.PlaceLeave(primIdx);
+                            });
+                            return;
+                        }
+                        if (secIdx >= 0)
+                        {
+                            // have to generate new on leave event and do stuff there
+                            Timeout(1, () =>
+                            {
+                                player.PlaceLeave(secIdx);
+                            });
+                            return;
+                        }
+                    }
+                }
+                else
+                {
+                    //if ((player != null) && (actor != null) && player.IsConnected() && (actor is AiAircraft))
+                    if (DEBUG_MESSAGES)
+                    {
+                        string msg = "It seems like aricraft can't be piloted... "
+                            + ((player == null) ? "--- (player == null)" : "")
+                            + ((actor == null) ? "--- (actor == null)" : "")
+                            + ((!player.IsConnected()) ? "--- (!player.IsConnected())" : "")
+                            + (!(actor is AiAircraft) ? "--- (!(actor is AiAircraft))" : "");
+                        CLog.Write(msg);
+                    }
+                }
+            }
+            if (DEBUG_MESSAGES) CLog.Write("m_KillDisusedPlanes.OnPlaceLeave()");
+            m_KillDisusedPlanes.OnPlaceLeave(player, actor, placeIndex);
+        }
+        catch (Exception e)
+        {
+            if (DEBUG_MESSAGES) CLog.Write(e.ToString());
+        }
     }
 
     public override void OnActorDead(int missionNumber, string shortName, AiActor actor, List<DamagerScore> damages)
     {
         base.OnActorDead(missionNumber, shortName, actor, damages);
-        if (DEBUG_MESSAGES) CLog.Write("OnActorDead " + shortName + " actor=" + actor.Name());
+        if (DEBUG_MESSAGES) CLog.Write("OnActorDead " + shortName + " actor=" + ((actor != null)?actor.Name():"=null"));
     }
 
     public override void OnAircraftTookOff(int missionNumber, string shortName, AiAircraft aircraft)
     {
         base.OnAircraftTookOff(missionNumber, shortName, aircraft);
-        if (DEBUG_MESSAGES) CLog.Write("OnAircraftTookOff " + shortName + " aircraft=" + aircraft.Name());
+        if (DEBUG_MESSAGES) CLog.Write("OnAircraftTookOff " + shortName + " aircraft=" + ((aircraft != null)?aircraft.Name():"=null"));
     }
 
     public override void OnAircraftCrashLanded(int missionNumber, string shortName, AiAircraft aircraft)
     {
         base.OnAircraftCrashLanded(missionNumber, shortName, aircraft);
-        if (DEBUG_MESSAGES) CLog.Write("OnAircraftCrashLanded " + shortName + " aircraft=" + aircraft.Name());
+        if (DEBUG_MESSAGES) CLog.Write("OnAircraftCrashLanded " + shortName + " aircraft=" + ((aircraft != null) ? aircraft.Name() : "=null"));
     }
     public override void OnAircraftLanded(int missionNumber, string shortName, AiAircraft aircraft)
     {
         base.OnAircraftLanded(missionNumber, shortName, aircraft);
-        if (DEBUG_MESSAGES) CLog.Write("OnAircraftCrashLanded " + shortName + " aircraft=" + aircraft.Name());
+        if (DEBUG_MESSAGES) CLog.Write("OnAircraftCrashLanded " + shortName + " aircraft=" + ((aircraft != null) ? aircraft.Name() : "=null"));
     }
     public override void OnTrigger(int missionNumber, string shortName, bool active)
     {
@@ -111,20 +256,20 @@ public class Mission : AMission
         }
 
         // Get list of all airfields on the map
-        AiAirport[] airportsSortedByArmy = new AiAirport[ GamePlay.gpAirports().Length ];
-        GamePlay.gpAirports().CopyTo(airportsSortedByArmy, 0);
+        AiAirport[] missionAirportsSortedByArmy = new AiAirport[ GamePlay.gpAirports().Length ];
+        GamePlay.gpAirports().CopyTo(missionAirportsSortedByArmy, 0);
 
         AiAirport aiAirport;
         // Sort by army
-        for (int i = 0; i < airportsSortedByArmy.Length - 1; i++)
+        for (int i = 0; i < missionAirportsSortedByArmy.Length - 1; i++)
         {
-            for (int j = i + 1; j < airportsSortedByArmy.Length; j++)
+            for (int j = i + 1; j < missionAirportsSortedByArmy.Length; j++)
             {
-                if (airportsSortedByArmy[i].Army() > airportsSortedByArmy[j].Army())
+                if (missionAirportsSortedByArmy[i].Army() > missionAirportsSortedByArmy[j].Army())
                 {
-                    aiAirport = airportsSortedByArmy[i];
-                    airportsSortedByArmy[i] = airportsSortedByArmy[j];
-                    airportsSortedByArmy[j] = aiAirport;
+                    aiAirport = missionAirportsSortedByArmy[i];
+                    missionAirportsSortedByArmy[i] = missionAirportsSortedByArmy[j];
+                    missionAirportsSortedByArmy[j] = aiAirport;
                 }
             }
         }
@@ -134,32 +279,37 @@ public class Mission : AMission
         // debug printing
         //
         if (DEBUG_MESSAGES) CLog.Write("Sorted list of airfields:");
-        for (int i = 0; i < airportsSortedByArmy.Length; i++)
+        for (int i = 0; i < missionAirportsSortedByArmy.Length; i++)
         {
-            if (DEBUG_MESSAGES) CLog.Write(airportsSortedByArmy[i].Name() + " army=" + airportsSortedByArmy[i].Army().ToString());
+            if (DEBUG_MESSAGES) CLog.Write(missionAirportsSortedByArmy[i].Name() + " army=" + missionAirportsSortedByArmy[i].Army().ToString());
         }
 
+        if(missionAirportsSortedByArmy[0].Army() != 0)
+        {
+            if (DEBUG_MESSAGES) CLog.Write("OMG! Neutral airports with Army() == 0 NOT FOUND!!!");
+            return;
+        }
 
-        List<CAirportIndexes> airportIndexesByArmy = new List<CAirportIndexes>();
-        airportIndexesByArmy.Add(new CAirportIndexes());
-        airportIndexesByArmy[0].Army = airportsSortedByArmy[0].Army(); // Actually first airport in list have to be neutral so just 0 can be assigned
-        airportIndexesByArmy[0].FirstIdx = 0;
-        airportIndexesByArmy[0].LastIdx = 0;
+        List<CAirportIndexes> missionAirportIndexesByArmy = new List<CAirportIndexes>();
+        missionAirportIndexesByArmy.Add(new CAirportIndexes());
+        missionAirportIndexesByArmy[0].Army = 0;//missionAirportsSortedByArmy[0].Army(); // Actually first airport in list have to be neutral so just 0 can be assigned
+        missionAirportIndexesByArmy[0].FirstIdx = 0;
+        missionAirportIndexesByArmy[0].LastIdx = 0;
         int idx = 0;
         // Lets prepare indexes for different armies airfields for fast searching.
-        for (int i = 1; i < airportsSortedByArmy.Length; i++)
+        for (int i = 1; i < missionAirportsSortedByArmy.Length; i++)
         {
-            if (airportsSortedByArmy[i].Army() == airportIndexesByArmy[idx].Army)
+            if (missionAirportsSortedByArmy[i].Army() == missionAirportIndexesByArmy[idx].Army)
             {
-                airportIndexesByArmy[idx].LastIdx = i;
+                missionAirportIndexesByArmy[idx].LastIdx = i;
             }
             else
             {
                 idx++;
-                airportIndexesByArmy.Add(new CAirportIndexes());
-                airportIndexesByArmy[idx].Army = airportsSortedByArmy[i].Army();
-                airportIndexesByArmy[idx].FirstIdx = i;
-                airportIndexesByArmy[idx].LastIdx = i;
+                missionAirportIndexesByArmy.Add(new CAirportIndexes());
+                missionAirportIndexesByArmy[idx].Army = missionAirportsSortedByArmy[i].Army();
+                missionAirportIndexesByArmy[idx].FirstIdx = i;
+                missionAirportIndexesByArmy[idx].LastIdx = i;
 
             }
         }
@@ -168,23 +318,22 @@ public class Mission : AMission
         // debug printing
         //
         if (DEBUG_MESSAGES) CLog.Write("---Indexes for different armies airfields for fast searching done.");
-        for (int i = 0; i < airportIndexesByArmy.Count; i++)
+        for (int i = 0; i < missionAirportIndexesByArmy.Count; i++)
         {
             if (DEBUG_MESSAGES) CLog.Write("Index=" + i.ToString() 
-                + " Army="+ airportIndexesByArmy[i].Army.ToString() 
-                + " First=" + airportIndexesByArmy[i].FirstIdx.ToString()
-                + " Last=" + airportIndexesByArmy[i].LastIdx.ToString());
+                + " Army="+ missionAirportIndexesByArmy[i].Army.ToString() 
+                + " First=" + missionAirportIndexesByArmy[i].FirstIdx.ToString()
+                + " Last=" + missionAirportIndexesByArmy[i].LastIdx.ToString());
         }
 
-        // create array of neautral airports lists by armies if more than just one neutral armie
-        if (airportIndexesByArmy.Count > 1) {
-            int nonNeutralArmiesCount = airportIndexesByArmy.Count - 1;
-            NeutralAirportsByArmies = new CNeutralAirportsByArmies[nonNeutralArmiesCount];
+        // create array of neautral airports lists by armies
+        if (missionAirportIndexesByArmy.Count > 0) {
+            NeutralAirportsByArmies = new CNeutralAirportsByArmies[missionAirportIndexesByArmy.Count];
             // fill army values
-            for (int armyIdx = 1; armyIdx <= nonNeutralArmiesCount; armyIdx++)
+            for (int armyIdx = 0; armyIdx < missionAirportIndexesByArmy.Count; armyIdx++)
             {
-                NeutralAirportsByArmies[armyIdx - 1] = new CNeutralAirportsByArmies();
-                NeutralAirportsByArmies[armyIdx - 1].Army = airportIndexesByArmy[armyIdx].Army;
+                NeutralAirportsByArmies[armyIdx] = new CNeutralAirportsByArmies();
+                NeutralAirportsByArmies[armyIdx].Army = missionAirportIndexesByArmy[armyIdx].Army;
             }
 
             //
@@ -194,23 +343,31 @@ public class Mission : AMission
 
 
 
-            // fill airfields
-            for (int neutralAirportIdx = 0; neutralAirportIdx <= airportIndexesByArmy[0].LastIdx; neutralAirportIdx++)
+            // fill airfields NeutralAirportsByArmies from list of all mission neutral airports
+            for (int missionNeutralAirportIdx = 0; missionNeutralAirportIdx <= missionAirportIndexesByArmy[0].LastIdx; missionNeutralAirportIdx++)
             {
-                AiAirport neutralAirport = airportsSortedByArmy[neutralAirportIdx];
-                Point3d neutralAirportPos = neutralAirport.Pos();
-                for (int armyIdx = 1; armyIdx <= nonNeutralArmiesCount; armyIdx++)
+                AiAirport missionNeutralAirport = missionAirportsSortedByArmy[missionNeutralAirportIdx];
+                Point3d missionNeutralAirportPos = missionNeutralAirport.Pos();
+                bool nonNeutralAirportFound = false;
+                for (int armyIdx = 1; armyIdx < missionAirportIndexesByArmy.Count; armyIdx++)
                 {
-                    for (int nonNeutralAirportIdx = airportIndexesByArmy[armyIdx].FirstIdx; nonNeutralAirportIdx <= airportIndexesByArmy[armyIdx].LastIdx; nonNeutralAirportIdx++)
+                    for (int nonNeutralAirportIdx = missionAirportIndexesByArmy[armyIdx].FirstIdx; nonNeutralAirportIdx <= missionAirportIndexesByArmy[armyIdx].LastIdx; nonNeutralAirportIdx++)
                     {
-                        AiAirport nonNeutralAirport = airportsSortedByArmy[nonNeutralAirportIdx];
+                        AiAirport nonNeutralAirport = missionAirportsSortedByArmy[nonNeutralAirportIdx];
                         Point3d nonNeutralAirportPos = nonNeutralAirport.Pos();
-                        if (neutralAirportPos.distanceLinf(ref nonNeutralAirportPos) < neutralAirport.CoverageR())
+                        if (missionNeutralAirportPos.distanceLinf(ref nonNeutralAirportPos) < missionNeutralAirport.CoverageR())
                         {
-                            NeutralAirportsByArmies[armyIdx - 1].aiAirports.Add(neutralAirport);
+                            NeutralAirportsByArmies[armyIdx].aiAirports.Add(missionNeutralAirport);
+                            nonNeutralAirportFound = true;
                             break;
                         }
                     }
+                    if (nonNeutralAirportFound)
+                        break;
+                }
+                if(!nonNeutralAirportFound)
+                {
+                    NeutralAirportsByArmies[0].aiAirports.Add(missionNeutralAirport);
                 }
             }
 
@@ -230,23 +387,34 @@ public class Mission : AMission
         }
     }
 
-    public bool IsAircraftAtFriendlyAirfield(AiAircraft Aircraft)
+    public enum EAircraftLocation
     {
-        if (Aircraft == null)
-        { 
-            return false; 
+        Unknown = 0,
+        Airborne,
+        DitchedGround,
+        DitchedSea,
+        NeutralAirfield,
+        EnemyAirfield,
+        FriendlyAirfield,
+    };
+
+    public EAircraftLocation GetAircraftLocation(AiAircraft aircraft) {
+        if (aircraft == null)
+        {
+            return EAircraftLocation.Unknown;
         }
+
         bool aircraftIsOnTheGround = false;
-        if (!Aircraft.IsAirborne()) // Just spawen and never airborne.
+        if (!aircraft.IsAirborne()) // Just spawen and never airborne.
         {
             aircraftIsOnTheGround = true;
-            if (DEBUG_MESSAGES) CLog.Write(Aircraft.Name() + " is NOT airborne.");
+            if (DEBUG_MESSAGES) CLog.Write(aircraft.Name() + " is NOT airborne.");
         }
         else // Important notice! Aircraft that airborne once stays airborne forever, even after landed.
         {
-            double aircraftAGL = Aircraft.getParameter(part.ParameterTypes.Z_AltitudeAGL, -1);
-            double aircraftTAS = Aircraft.getParameter(part.ParameterTypes.Z_VelocityTAS, -1);
-            if (DEBUG_MESSAGES) CLog.Write(Aircraft.Name() + " is AGL=" + aircraftAGL.ToString() + "m and TAS=" + aircraftTAS.ToString() + "m/s");
+            double aircraftAGL = aircraft.getParameter(part.ParameterTypes.Z_AltitudeAGL, -1);
+            double aircraftTAS = aircraft.getParameter(part.ParameterTypes.Z_VelocityTAS, -1);
+            if (DEBUG_MESSAGES) CLog.Write(aircraft.Name() + " is AGL=" + aircraftAGL.ToString() + "m and TAS=" + aircraftTAS.ToString() + "m/s");
             if ((aircraftAGL < 5) && (aircraftTAS < 3.6))
             {
                 aircraftIsOnTheGround = true;
@@ -255,8 +423,8 @@ public class Mission : AMission
 
         if (aircraftIsOnTheGround)
         {
-            Point3d aircraftPos = Aircraft.Pos();
-            int aircraftArmy = Aircraft.Army();
+            Point3d aircraftPos = aircraft.Pos();
+            int aircraftArmy = aircraft.Army();
             AiAirport airportFriendly;
             Point3d airportFriendlyPos;
 
@@ -281,48 +449,95 @@ public class Mission : AMission
                     double distToAirportFriendly = airportFriendlyPos.distanceLinf(ref aircraftPos);
                     if (distToAirportFriendly < airportFriendly.CoverageR())
                     {
-                        if (DEBUG_MESSAGES) CLog.Write(Aircraft.Name() + " is on friendly airfiled " + airportFriendly.Name() + " distance " + distToAirportFriendly.ToString());
+                        if (DEBUG_MESSAGES) CLog.Write(aircraft.Name() + " is on friendly airfiled " + airportFriendly.Name() + " distance " + distToAirportFriendly.ToString());
+                        return EAircraftLocation.FriendlyAirfield;
+                    }
+                }
+            }
+
+            if (GamePlay.gpLandType(aircraftPos.x, aircraftPos.y) == LandTypes.WATER)
+            {
+                if (DEBUG_MESSAGES) CLog.Write(aircraft.Name() + " is ditched in to the water.");
+                return EAircraftLocation.DitchedGround;
+            }
+            //else
+            //{
+            //    if (DEBUG_MESSAGES) CLog.Write(aircraft.Name() + " is abbandoned on the ground.");
+            //    return EAircraftLocation.DitchedGround;
+            //}
+        }
+        else
+        {
+            if (DEBUG_MESSAGES) CLog.Write(aircraft.Name() + " is airborne.");
+            return EAircraftLocation.Airborne;
+        }
+        if (DEBUG_MESSAGES) CLog.Write(aircraft.Name() + " is abbandoned on the ground.");
+        return EAircraftLocation.DitchedGround;
+    }
+
+    /*public bool IsAircraftAtFriendlyAirfield(AiAircraft aircraft)
+    {
+        if (aircraft == null)
+        { 
+            return false; 
+        }
+        bool aircraftIsOnTheGround = false;
+        if (!aircraft.IsAirborne()) // Just spawen and never airborne.
+        {
+            aircraftIsOnTheGround = true;
+            if (DEBUG_MESSAGES) CLog.Write(aircraft.Name() + " is NOT airborne.");
+        }
+        else // Important notice! Aircraft that airborne once stays airborne forever, even after landed.
+        {
+            double aircraftAGL = aircraft.getParameter(part.ParameterTypes.Z_AltitudeAGL, -1);
+            double aircraftTAS = aircraft.getParameter(part.ParameterTypes.Z_VelocityTAS, -1);
+            if (DEBUG_MESSAGES) CLog.Write(aircraft.Name() + " is AGL=" + aircraftAGL.ToString() + "m and TAS=" + aircraftTAS.ToString() + "m/s");
+            if ((aircraftAGL < 5) && (aircraftTAS < 3.6))
+            {
+                aircraftIsOnTheGround = true;
+            }
+        }
+
+        if (aircraftIsOnTheGround)
+        {
+            Point3d aircraftPos = aircraft.Pos();
+            int aircraftArmy = aircraft.Army();
+            AiAirport airportFriendly;
+            Point3d airportFriendlyPos;
+
+            // lets find list of friendly airports
+            int friendlyAirportsListIdx = -1;
+            // skip neutral airports index 0
+            for (int i = 1; i < NeutralAirportsByArmies.Length; i++)
+            {
+                if (NeutralAirportsByArmies[i].Army == aircraftArmy)
+                {
+                    friendlyAirportsListIdx = i;
+                    break;
+                }
+            }
+            if (friendlyAirportsListIdx >= 0)
+            {
+                int airportsCount = NeutralAirportsByArmies[friendlyAirportsListIdx].aiAirports.Count;
+                for (int i = 0; i < airportsCount; i++)
+                {
+                    airportFriendly = NeutralAirportsByArmies[friendlyAirportsListIdx].aiAirports[i];
+                    airportFriendlyPos = airportFriendly.Pos();
+                    // Ok, this neutral airport contain friendly spawn area airport. Check if we are in this neutral airport radius
+                    double distToAirportFriendly = airportFriendlyPos.distanceLinf(ref aircraftPos);
+                    if (distToAirportFriendly < airportFriendly.CoverageR())
+                    {
+                        if (DEBUG_MESSAGES) CLog.Write(aircraft.Name() + " is on friendly airfiled " + airportFriendly.Name() + " distance " + distToAirportFriendly.ToString());
                         return true;
                     }
                 }
             }
-            //Point3d airportNeutralPos;
-            //AiAirport airportNeutral;
-            //AiAirport[] airports = GamePlay.gpAirports();
-            //for (int i = 0; i < airports.Length; i++)
-            //{
-            //    airportNeutral = airports[i];
-            //    // get neutral airfileds with friendly spawn area airports nearby...
-            //    if (airportNeutral.Army() == 0)
-            //    {
-            //        airportNeutralPos = airportNeutral.Pos();
-            //        for (int j = 0; j < airports.Length; j++)
-            //        {
-            //            if (i == j) continue;
-            //            airportFriendly = airports[j];
-            //            if (airportFriendly.Army() == aircraftArmy)
-            //            {
-            //                Point3d airportFriendlyPos = airportFriendly.Pos();
-            //                if (airportNeutralPos.distanceLinf(ref airportFriendlyPos) < airportNeutral.CoverageR())
-            //                {
-            //                    // Ok, this neutral airport contain friendly spawn area airport. Check if we are in this neutral airport radius
-            //                    double distToAirportNeutral = airportNeutralPos.distanceLinf(ref aircraftPos);
-            //                    if (distToAirportNeutral < airportNeutral.CoverageR())
-            //                    {
-            //                        if (DEBUG_MESSAGES) CLog.Write(Aircraft.Name() + " is on friendly airfiled " + airportNeutral.Name() + " distance " + distToAirportNeutral.ToString());
-            //                        return true;
-            //                    }
-            //                }
-            //            }
-            //        }
-            //    }
-            //}
-            if (DEBUG_MESSAGES) CLog.Write(Aircraft.Name() + " is abbandoned on the ground.");
+            if (DEBUG_MESSAGES) CLog.Write(aircraft.Name() + " is abbandoned on the ground.");
         }
         else
         {
-            if (DEBUG_MESSAGES) CLog.Write(Aircraft.Name() + " is airborne.");
+            if (DEBUG_MESSAGES) CLog.Write(aircraft.Name() + " is airborne.");
         }
         return false;
-    }
+    }*/
 }
