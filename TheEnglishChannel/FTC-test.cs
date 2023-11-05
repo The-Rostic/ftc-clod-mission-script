@@ -67,7 +67,10 @@ public class Mission : AMission
                             if (aircraftTAS > 1.0)
                             {
                                 if (DEBUG_MESSAGES) CLog.Write("Player " + player.Name() + " is about to enter pilot seat again " + aircraft.Name());
-                                player.PlaceEnter(actor, 0);
+                                Timeout((player.Ping() + 50) * 0.001, () =>
+                                {
+                                    player.PlaceEnter(actor, 0);
+                                });
                                 Player[] recepients = { player };
                                 GamePlay.gpHUDLogCenter(recepients, "Bailout, crash or land and stop!");
                                 return;
