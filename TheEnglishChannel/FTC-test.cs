@@ -257,37 +257,66 @@ public class Mission : AMission
         {
             Point3d aircraftPos = Aircraft.Pos();
             int aircraftArmy = Aircraft.Army();
-            AiAirport[] airports = GamePlay.gpAirports();
-            AiAirport airportFriendly, airportNeutral;
-            Point3d airportNeutralPos;
-            for (int i = 0; i < airports.Length; i++)
+            AiAirport airportFriendly;
+            Point3d airportFriendlyPos;
+
+            // lets find list of friendly airports
+            int friendlyAirportsListIdx = -1;
+            for (int i = 0; i < NeutralAirportsByArmies.Length; i++)
             {
-                airportNeutral = airports[i];
-                // get neutral airfileds with friendly spawn area airports nearby...
-                if (airportNeutral.Army() == 0)
+                if (NeutralAirportsByArmies[i].Army == aircraftArmy)
                 {
-                    airportNeutralPos = airportNeutral.Pos();
-                    for (int j = 0; j < airports.Length; j++)
+                    friendlyAirportsListIdx = i;
+                    break;
+                }
+            }
+            if (friendlyAirportsListIdx >= 0)
+            {
+                int airportsCount = NeutralAirportsByArmies[friendlyAirportsListIdx].aiAirports.Count;
+                for (int i = 0; i < airportsCount; i++)
+                {
+                    airportFriendly = NeutralAirportsByArmies[friendlyAirportsListIdx].aiAirports[i];
+                    airportFriendlyPos = airportFriendly.Pos();
+                    // Ok, this neutral airport contain friendly spawn area airport. Check if we are in this neutral airport radius
+                    double distToAirportFriendly = airportFriendlyPos.distanceLinf(ref aircraftPos);
+                    if (distToAirportFriendly < airportFriendly.CoverageR())
                     {
-                        if (i == j) continue;
-                        airportFriendly = airports[j];
-                        if (airportFriendly.Army() == aircraftArmy)
-                        {
-                            Point3d airportFriendlyPos = airportFriendly.Pos();
-                            if (airportNeutralPos.distanceLinf(ref airportFriendlyPos) < airportNeutral.CoverageR())
-                            {
-                                // Ok, this neutral airport contain friendly spawn area airport. Check if we are in this neutral airport radius
-                                double distToAirportNeutral = airportNeutralPos.distanceLinf(ref aircraftPos);
-                                if (distToAirportNeutral < airportNeutral.CoverageR())
-                                {
-                                    if (DEBUG_MESSAGES) CLog.Write(Aircraft.Name() + " is on friendly airfiled " + airportNeutral.Name() + " distance " + distToAirportNeutral.ToString());
-                                    return true;
-                                }
-                            }
-                        }
+                        if (DEBUG_MESSAGES) CLog.Write(Aircraft.Name() + " is on friendly airfiled " + airportFriendly.Name() + " distance " + distToAirportFriendly.ToString());
+                        return true;
                     }
                 }
             }
+            //Point3d airportNeutralPos;
+            //AiAirport airportNeutral;
+            //AiAirport[] airports = GamePlay.gpAirports();
+            //for (int i = 0; i < airports.Length; i++)
+            //{
+            //    airportNeutral = airports[i];
+            //    // get neutral airfileds with friendly spawn area airports nearby...
+            //    if (airportNeutral.Army() == 0)
+            //    {
+            //        airportNeutralPos = airportNeutral.Pos();
+            //        for (int j = 0; j < airports.Length; j++)
+            //        {
+            //            if (i == j) continue;
+            //            airportFriendly = airports[j];
+            //            if (airportFriendly.Army() == aircraftArmy)
+            //            {
+            //                Point3d airportFriendlyPos = airportFriendly.Pos();
+            //                if (airportNeutralPos.distanceLinf(ref airportFriendlyPos) < airportNeutral.CoverageR())
+            //                {
+            //                    // Ok, this neutral airport contain friendly spawn area airport. Check if we are in this neutral airport radius
+            //                    double distToAirportNeutral = airportNeutralPos.distanceLinf(ref aircraftPos);
+            //                    if (distToAirportNeutral < airportNeutral.CoverageR())
+            //                    {
+            //                        if (DEBUG_MESSAGES) CLog.Write(Aircraft.Name() + " is on friendly airfiled " + airportNeutral.Name() + " distance " + distToAirportNeutral.ToString());
+            //                        return true;
+            //                    }
+            //                }
+            //            }
+            //        }
+            //    }
+            //}
             if (DEBUG_MESSAGES) CLog.Write(Aircraft.Name() + " is abbandoned on the ground.");
         }
         else

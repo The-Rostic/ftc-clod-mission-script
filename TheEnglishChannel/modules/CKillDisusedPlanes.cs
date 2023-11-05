@@ -41,10 +41,13 @@ public class CKillDisusedPlanes {
     public bool DEBUG_MESSAGES = true;
 
     // number of seconds to wait between damage and destroy of aircraft on friendly airfield
-    protected const int TIMEOUT_ATFRIENDLYBASE = 1;
+    protected const int TIMEOUT_NOTAIRBORNE = 1;
+
+    // number of seconds to wait between damage and destroy of aircraft on friendly airfield
+    protected const int TIMEOUT_ATFRIENDLYBASE = 600;
 
     // number of seconds to wait between damage and destroy airborne aircraft
-    protected const int TIMEOUT_ABANDONED = 60; // < 0 means do not destroy aircraft
+    protected const int TIMEOUT_ABANDONED = -1; // < 0 means do not destroy aircraft
 
     protected AMission m_Mission = null;
 
@@ -93,6 +96,8 @@ public class CKillDisusedPlanes {
         /// Make Damage
         /// We wrap in try ... catch to make sure at least *some* of them are effected
         /// no matter what happens (e.g. the Wing part throws on Blenheims)
+
+        Aircraft.RefuelPlane(0); // without fuel AI cant move to faraway
 
         /// Damage named parts
         try
@@ -145,6 +150,10 @@ public class CKillDisusedPlanes {
         if ( (m_Mission as Mission).IsAircraftAtFriendlyAirfield(Aircraft) )
         {
             iDestroyTimeout = TIMEOUT_ATFRIENDLYBASE;
+            if (!Aircraft.IsAirborne())
+            {
+                iDestroyTimeout = TIMEOUT_NOTAIRBORNE;
+            }
         }
 
         // Destroy time! ... maybe.
