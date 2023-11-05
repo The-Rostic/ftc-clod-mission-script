@@ -66,14 +66,18 @@ public class Mission : AMission
                             // Do not  allow leave moving aircraft!
                             if (aircraftTAS > 1.0)
                             {
-                                if (DEBUG_MESSAGES) CLog.Write("Player " + player.Name() + " is about to enter pilot seat again " + aircraft.Name());
+                                if (DEBUG_MESSAGES) CLog.Write("Player " + player.Name() + " is in moving aircraft and is about to enter pilot seat again " + aircraft.Name());
                                 Timeout((player.Ping() + 50) * 0.001, () =>
                                 {
                                     player.PlaceEnter(actor, 0);
                                 });
                                 Player[] recepients = { player };
-                                GamePlay.gpHUDLogCenter(recepients, "Bailout, crash or land and stop!");
+                                GamePlay.gpHUDLogCenter(recepients, "Bailout, crash or land!");
                                 return;
+                            }
+                            else
+                            {
+                                if (DEBUG_MESSAGES) CLog.Write("Player " + player.Name() + " aircraft not moving.");
                             }
                             if (!isAiControlled)
                             {
@@ -135,7 +139,7 @@ public class Mission : AMission
                             + ((player == null) ? "--- (player == null)" : "")
                             + ((actor == null) ? "--- (actor == null)" : "")
                             + ((!player.IsConnected()) ? "--- (!player.IsConnected())" : "")
-                            + (!(actor is AiAircraft) ? "--- (!(actor is AiAircraft))" : "");
+                            + (((actor != null) && !(actor is AiAircraft)) ? "--- (!(actor is AiAircraft))" : "");
                         CLog.Write(msg);
                     }
                 }
@@ -277,7 +281,6 @@ public class Mission : AMission
             }
         }
 
-
         //
         // debug printing
         //
@@ -343,8 +346,6 @@ public class Mission : AMission
             // debug printing
             //
             if (DEBUG_MESSAGES) CLog.Write("---Army values filled.");
-
-
 
             // fill airfields NeutralAirportsByArmies from list of all mission neutral airports
             for (int missionNeutralAirportIdx = 0; missionNeutralAirportIdx <= missionAirportIndexesByArmy[0].LastIdx; missionNeutralAirportIdx++)
