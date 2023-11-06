@@ -7,6 +7,9 @@ using System.Threading;
 
 public static class CLog
 {
+    private static bool initialized = false;
+    public static bool IsInitialized { get { return initialized; } }
+
     private static AMission m_Mission = null;
 
     private static StreamWriter m_LogFile;
@@ -81,6 +84,7 @@ public static class CLog
                 m_LogFile = null;
             }
         }
+        initialized = true;
         Write("Mission initialized...");
     }
 
@@ -89,6 +93,7 @@ public static class CLog
     /// </summary>
     public static void Close()
     {
+        if (!initialized) return;
         if (m_LogFile != null)
         {
             try
@@ -107,6 +112,7 @@ public static class CLog
     /// <param name="message">message to log</param>
     public static void Write(string message)
     {
+        if (!initialized) return;
         if ((CConfig.DEBUG_SERVER_LOG_ENABLE) || (m_LogFile != null))
         {
             DateTime dt = DateTime.Now;
@@ -126,7 +132,9 @@ public static class CLog
 
             if (CConfig.DEBUG_SERVER_LOG_ENABLE)
             {
-                m_Mission.GamePlay.gpLogServer(logmsg);
+                //m_Mission.GamePlay.gpLogServer(logmsg);
+                m_Mission.GamePlay.gpLogServer(null, logmsg, null);
+                //m_Mission.GamePlay.gpLogServer(new Player[] { m_Mission.GamePlay.gpPlayer() }, logmsg, null);
             }
         }
     }
@@ -135,6 +143,7 @@ public static class CLog
     /// </summary>
     public static void FlushBuffers()
     {
+        if (!initialized) return;
         if (CConfig.DEBUG_LOCAL_LOG_ENABLE)
         {
             try

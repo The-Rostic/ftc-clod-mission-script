@@ -10,23 +10,45 @@ using System.Diagnostics;
 using part;
 using maddox.GP; //-------------------
 
+//$include .\modules\CMissionCommon.cs
 //$include .\modules\CConfig.cs
 //$include .\modules\CKillDisusedPlanes.cs
 //$include .\modules\CLog.cs
 
 public class Mission : AMission
 {
-    public bool DEBUG_MESSAGES = true;
-    
-    public CKillDisusedPlanes m_KillDisusedPlanes = null;
+    public const bool DEBUG_MESSAGES = true;
+    public CMissionCommon missionCommon = null;
+
+
+    public override void OnBattleInit()
+    {
+        base.OnBattleInit();
+        missionCommon = new CMissionCommon(this);
+        missionCommon.OnBattleInit();
+        /////////////////////////////////////
+        // write mission custom code below
+
+        // ...
+
+        // write mission custom code above
+        /////////////////////////////////////
+    }
 
     public override void OnBattleStarted()
     {
         base.OnBattleStarted();
-        m_KillDisusedPlanes = new CKillDisusedPlanes(this);
         CLog.Init(this);
-        if (DEBUG_MESSAGES) CLog.Write("OnBattleStarted");
-        PrepareAirports();
+        missionCommon.OnBattleStarted();
+
+        /////////////////////////////////////
+        // write mission custom code below
+
+        // ...
+
+        // write mission custom code above
+        /////////////////////////////////////
+
         // listen all the mission
         MissionNumberListener = -1;
     }
@@ -34,514 +56,463 @@ public class Mission : AMission
     public override void OnBattleStoped()
     {
         base.OnBattleStoped();
-        if (DEBUG_MESSAGES) CLog.Write("OnBattleStoped");
-        CLog.Close();
-    }
+        missionCommon.OnBattleStoped();
+        /////////////////////////////////////
+        // write mission custom code below
 
-    public override void OnPlaceEnter(Player player, AiActor actor, int placeIndex)
-    {
-        base.OnPlaceEnter(player, actor, placeIndex);
-        if (DEBUG_MESSAGES) CLog.Write("OnPlaceEnter player=" + ((player != null)?player.Name():"=null") + " actor=" + ((actor != null) ? actor.Name() : "=null") + " placeIdx=" + placeIndex.ToString());
+        // ...
+
+        // write mission custom code above
+        /////////////////////////////////////
     }
 
     public override void OnPlaceLeave(Player player, AiActor actor, int placeIndex)
     {
-        try 
-        { 
-            base.OnPlaceLeave(player, actor, placeIndex);
-            if (DEBUG_MESSAGES) CLog.Write("OnPlaceLeave player=" + ((player != null) ? player.Name() : "=null") + " actor=" + ((actor != null) ? actor.Name() : "=null") + " placeIdx=" + placeIndex.ToString());
-            if (CConfig.DISABLE_LEAVE_MOVING_AIRCRAFT)
-            {
-                if ((player != null) && (actor != null) && player.IsConnected() && (actor is AiAircraft))
-                {
-                    AiAircraft aircraft = actor as AiAircraft;
-                    if (DEBUG_MESSAGES) CLog.Write("Player " + player.Name() + " is trying to leave aircraft " + aircraft.Name());
-                    bool isAiControlled = m_KillDisusedPlanes.IsAiControlledPlane(aircraft);
-                    if (isAiControlled || (placeIndex == 0)) //pilot cann't leave airborne aircraft even if another seat occupied
-                    {
-                        if (aircraft.IsAlive() && (aircraft.Person(0) != null) && (aircraft.Person(0).Health > 0) && aircraft.IsValid())
-                        {
-                            //EAircraftLocation aircraftLocation = GetAircraftLocation(aircraft);
-                            double aircraftTAS = aircraft.getParameter(part.ParameterTypes.Z_VelocityTAS, -1);
-                            // Do not  allow leave moving aircraft!
-                            if (aircraftTAS > 1.0)
-                            {
-                                if (DEBUG_MESSAGES) CLog.Write("Player " + player.Name() + " is in moving aircraft and is about to enter pilot seat again " + aircraft.Name());
-                                Timeout((player.Ping() + 50) * 0.001, () =>
-                                {
-                                    player.PlaceEnter(actor, 0);
-                                });
-                                Player[] recepients = { player };
-                                GamePlay.gpHUDLogCenter(recepients, "Bailout, crash or land!");
-                                return;
-                            }
-                            else
-                            {
-                                if (DEBUG_MESSAGES) CLog.Write("Player " + player.Name() + " aircraft not moving.");
-                            }
-                            if (!isAiControlled)
-                            {
-                                // Hey! Pilot left but 
-                                int primIdx = player.PlacePrimary();
-                                int secIdx = player.PlaceSecondary();
-                                if (DEBUG_MESSAGES) CLog.Write("Hey! Player still in aircraft! PlacePrimary=" + primIdx.ToString() + " PlaceSecondary=" + secIdx.ToString());
-                                if (primIdx >= 0)
-                                {
-                                    // have to generate new on leave event and do stuff there
-                                    Timeout(1, () =>
-                                    {
-                                        player.PlaceLeave(primIdx);
-                                    });
-                                    return;
-                                }
-                                if (secIdx >= 0)
-                                {
-                                    // have to generate new on leave event and do stuff there
-                                    Timeout(1, () =>
-                                    {
-                                        player.PlaceLeave(secIdx);
-                                    });
-                                    return;
-                                }
-                            }
-                            if (DEBUG_MESSAGES) CLog.Write("Ok, it is allowed to leave pilot seat.");
-                        }
-                        else
-                        {
-                            // (aircraft.IsAlive() && (aircraft.Person(0) != null) && (aircraft.Person(0).Health > 0) && aircraft.IsValid())
-                            if (DEBUG_MESSAGES)
-                            {
-                                string msg = "It seems like aricraft can't be piloted... "
-                                    + ((!aircraft.IsAlive()) ? "--- (!aircraft.IsAlive())" : "")
-                                    + ((aircraft.Person(0) == null) ? "--- (Person(0) == null)" : "")
-                                    + (((aircraft.Person(0) != null) && (aircraft.Person(0).Health == 0)) ? "--- (aircraft.Person(0).Health <= 0)" : "")
-                                    + ((!aircraft.IsValid()) ? "--- (!aircraft.IsValid())" : "");
-                                CLog.Write(msg);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        //if (isAiControlled || (placeIndex == 0))
-                        if (DEBUG_MESSAGES)
-                        {
-                            CLog.Write("It seems like aricraft still piloted... --- (!isAiControlled && (placeIndex != 0)) no need to call KillDisusedPlanes.OnPlaceLeave() just free place");
-                            return;
-                        }
-                    }
-                }
-                else
-                {
-                    //if ((player != null) && (actor != null) && player.IsConnected() && (actor is AiAircraft))
-                    if (DEBUG_MESSAGES)
-                    {
-                        string msg = "It seems like aricraft can't be piloted... "
-                            + ((player == null) ? "--- (player == null)" : "")
-                            + ((actor == null) ? "--- (actor == null)" : "")
-                            + ((!player.IsConnected()) ? "--- (!player.IsConnected())" : "")
-                            + (((actor != null) && !(actor is AiAircraft)) ? "--- (!(actor is AiAircraft))" : "");
-                        CLog.Write(msg);
-                    }
-                }
-            }
-            else
-            if (CConfig.DISABLE_AI_TO_FLY_WITH_PLAYER_IN_SECONDARY_PLACE)
-            {
-                //
-                // When trying to leave pilot place then leave all places in aircraft and then destroy it! Disable AI to fly mission!
-                //
-                if ((player != null) && (actor != null) && player.IsConnected() && (actor is AiAircraft))
-                {
-                    AiAircraft aircraft = actor as AiAircraft;
-                    if (DEBUG_MESSAGES) CLog.Write("Player " + player.Name() + " is trying to leave aircraft " + aircraft.Name());
-                    bool isAiControlled = m_KillDisusedPlanes.IsAiControlledPlane(aircraft);
-                    if ((placeIndex == 0) && !isAiControlled)
-                    {
-                        int primIdx = player.PlacePrimary();
-                        int secIdx = player.PlaceSecondary();
-                        if (DEBUG_MESSAGES) CLog.Write("Hey! Player still in aircraft! PlacePrimary=" + primIdx.ToString() + " PlaceSecondary=" + secIdx.ToString());
-                        if (primIdx >= 0)
-                        {
-                            // have to generate new on leave event and do stuff there
-                            Timeout(1, () =>
-                            {
-                                player.PlaceLeave(primIdx);
-                            });
-                            return;
-                        }
-                        if (secIdx >= 0)
-                        {
-                            // have to generate new on leave event and do stuff there
-                            Timeout(1, () =>
-                            {
-                                player.PlaceLeave(secIdx);
-                            });
-                            return;
-                        }
-                    }
-                }
-                else
-                {
-                    //if ((player != null) && (actor != null) && player.IsConnected() && (actor is AiAircraft))
-                    if (DEBUG_MESSAGES)
-                    {
-                        string msg = "It seems like aricraft can't be piloted... "
-                            + ((player == null) ? "--- (player == null)" : "")
-                            + ((actor == null) ? "--- (actor == null)" : "")
-                            + ((!player.IsConnected()) ? "--- (!player.IsConnected())" : "")
-                            + (!(actor is AiAircraft) ? "--- (!(actor is AiAircraft))" : "");
-                        CLog.Write(msg);
-                    }
-                }
-            }
-            if (DEBUG_MESSAGES) CLog.Write("m_KillDisusedPlanes.OnPlaceLeave()");
-            m_KillDisusedPlanes.OnPlaceLeave(player, actor, placeIndex);
-        }
-        catch (Exception e)
-        {
-            if (DEBUG_MESSAGES) CLog.Write(e.ToString());
-        }
+        base.OnPlaceLeave(player, actor, placeIndex);
+        missionCommon.OnPlaceLeave(player, actor, placeIndex);
+        /////////////////////////////////////
+        // write mission custom code below
+
+        // ...
+
+        // write mission custom code above
+        /////////////////////////////////////
     }
+
+    //
+    // Not used events in MissionCommong logic... left commented for better performance.
+    //
+
+    public override void OnTrigger(int missionNumber, string shortName, bool active)
+    {
+        base.OnTrigger(missionNumber, shortName, active);
+        missionCommon.OnTrigger(missionNumber, shortName, active);
+        /////////////////////////////////////
+        // write mission custom code below
+
+        // ...
+
+        // write mission custom code above
+        /////////////////////////////////////
+    }
+
+    // left event OnTickGame() commented until to be used
+    //public override void OnTickGame()
+    //{
+    //    base.OnTickGame();
+    //    missionCommon.OnTickGame();
+    //    /////////////////////////////////////
+    //    // write mission custom code below
+    //
+    //    // ...
+    //
+    //    // write mission custom code above
+    //    /////////////////////////////////////
+    //}
+
+    // left event OnTickReal() commented until to be used
+    //public override void OnTickReal()
+    //{
+    //    base.OnTickReal();
+    //    missionCommon.OnTickReal();
+    //    /////////////////////////////////////
+    //    // write mission custom code below
+    //
+    //    // ...
+    //
+    //    // write mission custom code above
+    //    /////////////////////////////////////
+    //}
+
+    public override void OnActorCreated(int missionNumber, string shortName, AiActor actor)
+    {
+        base.OnActorCreated(missionNumber, shortName, actor);
+        missionCommon.OnActorCreated(missionNumber, shortName, actor);
+        /////////////////////////////////////
+        // write mission custom code below
+
+        // ...
+
+        // write mission custom code above
+        /////////////////////////////////////
+    }
+
+    public override void OnActorDamaged(int missionNumber, string shortName, AiActor actor, AiDamageInitiator initiator, NamedDamageTypes damageType)
+    {
+        base.OnActorDamaged(missionNumber, shortName, actor, initiator, damageType);
+        missionCommon.OnActorDamaged(missionNumber, shortName, actor, initiator, damageType);
+        /////////////////////////////////////
+        // write mission custom code below
+
+        // ...
+
+        // write mission custom code above
+        /////////////////////////////////////
+    }
+
 
     public override void OnActorDead(int missionNumber, string shortName, AiActor actor, List<DamagerScore> damages)
     {
         base.OnActorDead(missionNumber, shortName, actor, damages);
-        if (DEBUG_MESSAGES) CLog.Write("OnActorDead " + shortName + " actor=" + ((actor != null)?actor.Name():"=null"));
+        missionCommon.OnActorDead(missionNumber, shortName, actor, damages);
+        /////////////////////////////////////
+        // write mission custom code below
+
+        // ...
+
+        // write mission custom code above
+        /////////////////////////////////////
+    }
+
+    public override void OnActorDestroyed(int missionNumber, string shortName, AiActor actor)
+    {
+        base.OnActorDestroyed(missionNumber, shortName, actor);
+        missionCommon.OnActorDestroyed(missionNumber, shortName, actor);
+        /////////////////////////////////////
+        // write mission custom code below
+
+        // ...
+
+        // write mission custom code above
+        /////////////////////////////////////
     }
 
     public override void OnAircraftTookOff(int missionNumber, string shortName, AiAircraft aircraft)
     {
         base.OnAircraftTookOff(missionNumber, shortName, aircraft);
-        if (DEBUG_MESSAGES) CLog.Write("OnAircraftTookOff " + shortName + " aircraft=" + ((aircraft != null)?aircraft.Name():"=null"));
+        missionCommon.OnAircraftTookOff(missionNumber, shortName, aircraft);
+        /////////////////////////////////////
+        // write mission custom code below
+
+        // ...
+
+        // write mission custom code above
+        /////////////////////////////////////
     }
 
     public override void OnAircraftCrashLanded(int missionNumber, string shortName, AiAircraft aircraft)
     {
         base.OnAircraftCrashLanded(missionNumber, shortName, aircraft);
-        if (DEBUG_MESSAGES) CLog.Write("OnAircraftCrashLanded " + shortName + " aircraft=" + ((aircraft != null) ? aircraft.Name() : "=null"));
+        missionCommon.OnAircraftCrashLanded(missionNumber, shortName, aircraft);
+        /////////////////////////////////////
+        // write mission custom code below
+
+        // ...
+
+        // write mission custom code above
+        /////////////////////////////////////
     }
     public override void OnAircraftLanded(int missionNumber, string shortName, AiAircraft aircraft)
     {
         base.OnAircraftLanded(missionNumber, shortName, aircraft);
-        if (DEBUG_MESSAGES) CLog.Write("OnAircraftCrashLanded " + shortName + " aircraft=" + ((aircraft != null) ? aircraft.Name() : "=null"));
-    }
-    public override void OnTrigger(int missionNumber, string shortName, bool active)
-    {
-        base.OnTrigger(missionNumber, shortName, active);
-    }
-    public override void OnTickGame()
-    {
+        missionCommon.OnAircraftLanded(missionNumber, shortName, aircraft);
+        /////////////////////////////////////
+        // write mission custom code below
 
-    }
+        // ...
 
-
-    //
-    //  Custom functions
-    //
-
-
-    private class CAirportIndexes
-    {
-        public int Army = -1;
-        public int FirstIdx = -1;
-        public int LastIdx = -1;
+        // write mission custom code above
+        /////////////////////////////////////
     }
 
-    private class CNeutralAirportsByArmies
+    public override void OnActorTaskCompleted(int missionNumber, string shortName, AiActor actor)
     {
-        public List<AiAirport> aiAirports = new List<AiAirport>();
-        public int Army;
+        base.OnActorTaskCompleted(missionNumber, shortName, actor);
+        missionCommon.OnActorTaskCompleted(missionNumber, shortName, actor);
+        /////////////////////////////////////
+        // write mission custom code below
+
+        // ...
+
+        // write mission custom code above
+        /////////////////////////////////////
     }
 
-    private CNeutralAirportsByArmies[] NeutralAirportsByArmies = null;
-
-    public void PrepareAirports()
+    public override void OnAircraftCutLimb(int missionNumber, string shortName, AiAircraft aircraft, AiDamageInitiator initiator, LimbNames limbName)
     {
-        if (GamePlay.gpAirports().Length == 0)
-        {
-            return;
-        }
+        base.OnAircraftCutLimb(missionNumber, shortName, aircraft, initiator, limbName);
+        missionCommon.OnAircraftCutLimb(missionNumber, shortName, aircraft, initiator, limbName);
+        /////////////////////////////////////
+        // write mission custom code below
 
-        // Get list of all airfields on the map
-        AiAirport[] missionAirportsSortedByArmy = new AiAirport[ GamePlay.gpAirports().Length ];
-        GamePlay.gpAirports().CopyTo(missionAirportsSortedByArmy, 0);
+        // ...
 
-        AiAirport aiAirport;
-        // Sort by army
-        for (int i = 0; i < missionAirportsSortedByArmy.Length - 1; i++)
-        {
-            for (int j = i + 1; j < missionAirportsSortedByArmy.Length; j++)
-            {
-                if (missionAirportsSortedByArmy[i].Army() > missionAirportsSortedByArmy[j].Army())
-                {
-                    aiAirport = missionAirportsSortedByArmy[i];
-                    missionAirportsSortedByArmy[i] = missionAirportsSortedByArmy[j];
-                    missionAirportsSortedByArmy[j] = aiAirport;
-                }
-            }
-        }
-
-        //
-        // debug printing
-        //
-        if (DEBUG_MESSAGES) CLog.Write("Sorted list of airfields:");
-        for (int i = 0; i < missionAirportsSortedByArmy.Length; i++)
-        {
-            if (DEBUG_MESSAGES) CLog.Write(missionAirportsSortedByArmy[i].Name() + " army=" + missionAirportsSortedByArmy[i].Army().ToString());
-        }
-
-        if(missionAirportsSortedByArmy[0].Army() != 0)
-        {
-            if (DEBUG_MESSAGES) CLog.Write("OMG! Neutral airports with Army() == 0 NOT FOUND!!!");
-            return;
-        }
-
-        List<CAirportIndexes> missionAirportIndexesByArmy = new List<CAirportIndexes>();
-        missionAirportIndexesByArmy.Add(new CAirportIndexes());
-        missionAirportIndexesByArmy[0].Army = 0;//missionAirportsSortedByArmy[0].Army(); // Actually first airport in list have to be neutral so just 0 can be assigned
-        missionAirportIndexesByArmy[0].FirstIdx = 0;
-        missionAirportIndexesByArmy[0].LastIdx = 0;
-        int idx = 0;
-        // Lets prepare indexes for different armies airfields for fast searching.
-        for (int i = 1; i < missionAirportsSortedByArmy.Length; i++)
-        {
-            if (missionAirportsSortedByArmy[i].Army() == missionAirportIndexesByArmy[idx].Army)
-            {
-                missionAirportIndexesByArmy[idx].LastIdx = i;
-            }
-            else
-            {
-                idx++;
-                missionAirportIndexesByArmy.Add(new CAirportIndexes());
-                missionAirportIndexesByArmy[idx].Army = missionAirportsSortedByArmy[i].Army();
-                missionAirportIndexesByArmy[idx].FirstIdx = i;
-                missionAirportIndexesByArmy[idx].LastIdx = i;
-
-            }
-        }
-
-        //
-        // debug printing
-        //
-        if (DEBUG_MESSAGES) CLog.Write("---Indexes for different armies airfields for fast searching done.");
-        for (int i = 0; i < missionAirportIndexesByArmy.Count; i++)
-        {
-            if (DEBUG_MESSAGES) CLog.Write("Index=" + i.ToString() 
-                + " Army="+ missionAirportIndexesByArmy[i].Army.ToString() 
-                + " First=" + missionAirportIndexesByArmy[i].FirstIdx.ToString()
-                + " Last=" + missionAirportIndexesByArmy[i].LastIdx.ToString());
-        }
-
-        // create array of neautral airports lists by armies
-        if (missionAirportIndexesByArmy.Count > 0) {
-            NeutralAirportsByArmies = new CNeutralAirportsByArmies[missionAirportIndexesByArmy.Count];
-            // fill army values
-            for (int armyIdx = 0; armyIdx < missionAirportIndexesByArmy.Count; armyIdx++)
-            {
-                NeutralAirportsByArmies[armyIdx] = new CNeutralAirportsByArmies();
-                NeutralAirportsByArmies[armyIdx].Army = missionAirportIndexesByArmy[armyIdx].Army;
-            }
-
-            //
-            // debug printing
-            //
-            if (DEBUG_MESSAGES) CLog.Write("---Army values filled.");
-
-            // fill airfields NeutralAirportsByArmies from list of all mission neutral airports
-            for (int missionNeutralAirportIdx = 0; missionNeutralAirportIdx <= missionAirportIndexesByArmy[0].LastIdx; missionNeutralAirportIdx++)
-            {
-                AiAirport missionNeutralAirport = missionAirportsSortedByArmy[missionNeutralAirportIdx];
-                Point3d missionNeutralAirportPos = missionNeutralAirport.Pos();
-                bool nonNeutralAirportFound = false;
-                for (int armyIdx = 1; armyIdx < missionAirportIndexesByArmy.Count; armyIdx++)
-                {
-                    for (int nonNeutralAirportIdx = missionAirportIndexesByArmy[armyIdx].FirstIdx; nonNeutralAirportIdx <= missionAirportIndexesByArmy[armyIdx].LastIdx; nonNeutralAirportIdx++)
-                    {
-                        AiAirport nonNeutralAirport = missionAirportsSortedByArmy[nonNeutralAirportIdx];
-                        Point3d nonNeutralAirportPos = nonNeutralAirport.Pos();
-                        if (missionNeutralAirportPos.distanceLinf(ref nonNeutralAirportPos) < missionNeutralAirport.CoverageR())
-                        {
-                            NeutralAirportsByArmies[armyIdx].aiAirports.Add(missionNeutralAirport);
-                            nonNeutralAirportFound = true;
-                            break;
-                        }
-                    }
-                    if (nonNeutralAirportFound)
-                        break;
-                }
-                if(!nonNeutralAirportFound)
-                {
-                    NeutralAirportsByArmies[0].aiAirports.Add(missionNeutralAirport);
-                }
-            }
-
-            //
-            // debug printing
-            //
-            if (DEBUG_MESSAGES) CLog.Write("Neutral airfields by army.");
-
-            for (int armyIdx = 0; armyIdx < NeutralAirportsByArmies.Length; armyIdx++)
-            {
-                if (DEBUG_MESSAGES) CLog.Write("---List of airports for Army=" + NeutralAirportsByArmies[armyIdx].Army.ToString());
-                for (int airportIdx = 0; airportIdx < NeutralAirportsByArmies[armyIdx].aiAirports.Count; airportIdx++)
-                {
-                    if (DEBUG_MESSAGES) CLog.Write(NeutralAirportsByArmies[armyIdx].aiAirports[airportIdx].Name());
-                }
-            }
-        }
+        // write mission custom code above
+        /////////////////////////////////////
     }
 
-    public enum EAircraftLocation
+    public override void OnAircraftDamaged(int missionNumber, string shortName, AiAircraft aircraft, AiDamageInitiator initiator, NamedDamageTypes damageType)
     {
-        Unknown = 0,
-        Airborne,
-        DitchedGround,
-        DitchedSea,
-        NeutralAirfield,
-        EnemyAirfield,
-        FriendlyAirfield,
-    };
+        base.OnAircraftDamaged(missionNumber, shortName, aircraft, initiator, damageType);
+        missionCommon.OnAircraftDamaged(missionNumber, shortName, aircraft, initiator, damageType);
+        /////////////////////////////////////
+        // write mission custom code below
 
-    public EAircraftLocation GetAircraftLocation(AiAircraft aircraft) {
-        if (aircraft == null)
-        {
-            return EAircraftLocation.Unknown;
-        }
+        // ...
 
-        bool aircraftIsOnTheGround = false;
-        if (!aircraft.IsAirborne()) // Just spawen and never airborne.
-        {
-            aircraftIsOnTheGround = true;
-            if (DEBUG_MESSAGES) CLog.Write(aircraft.Name() + " is NOT airborne.");
-        }
-        else // Important notice! Aircraft that airborne once stays airborne forever, even after landed.
-        {
-            double aircraftAGL = aircraft.getParameter(part.ParameterTypes.Z_AltitudeAGL, -1);
-            double aircraftTAS = aircraft.getParameter(part.ParameterTypes.Z_VelocityTAS, -1);
-            if (DEBUG_MESSAGES) CLog.Write(aircraft.Name() + " is AGL=" + aircraftAGL.ToString() + "m and TAS=" + aircraftTAS.ToString() + "m/s");
-            if ((aircraftAGL < 5) && (aircraftTAS < 3.6))
-            {
-                aircraftIsOnTheGround = true;
-            }
-        }
-
-        if (aircraftIsOnTheGround)
-        {
-            Point3d aircraftPos = aircraft.Pos();
-            int aircraftArmy = aircraft.Army();
-            AiAirport airportFriendly;
-            Point3d airportFriendlyPos;
-
-            // lets find list of friendly airports
-            int friendlyAirportsListIdx = -1;
-            for (int i = 0; i < NeutralAirportsByArmies.Length; i++)
-            {
-                if (NeutralAirportsByArmies[i].Army == aircraftArmy)
-                {
-                    friendlyAirportsListIdx = i;
-                    break;
-                }
-            }
-            if (friendlyAirportsListIdx >= 0)
-            {
-                int airportsCount = NeutralAirportsByArmies[friendlyAirportsListIdx].aiAirports.Count;
-                for (int i = 0; i < airportsCount; i++)
-                {
-                    airportFriendly = NeutralAirportsByArmies[friendlyAirportsListIdx].aiAirports[i];
-                    airportFriendlyPos = airportFriendly.Pos();
-                    // Ok, this neutral airport contain friendly spawn area airport. Check if we are in this neutral airport radius
-                    double distToAirportFriendly = airportFriendlyPos.distanceLinf(ref aircraftPos);
-                    if (distToAirportFriendly < airportFriendly.CoverageR())
-                    {
-                        if (DEBUG_MESSAGES) CLog.Write(aircraft.Name() + " is on friendly airfiled " + airportFriendly.Name() + " distance " + distToAirportFriendly.ToString());
-                        return EAircraftLocation.FriendlyAirfield;
-                    }
-                }
-            }
-
-            if (GamePlay.gpLandType(aircraftPos.x, aircraftPos.y) == LandTypes.WATER)
-            {
-                if (DEBUG_MESSAGES) CLog.Write(aircraft.Name() + " is ditched in to the water.");
-                return EAircraftLocation.DitchedGround;
-            }
-            //else
-            //{
-            //    if (DEBUG_MESSAGES) CLog.Write(aircraft.Name() + " is abbandoned on the ground.");
-            //    return EAircraftLocation.DitchedGround;
-            //}
-        }
-        else
-        {
-            if (DEBUG_MESSAGES) CLog.Write(aircraft.Name() + " is airborne.");
-            return EAircraftLocation.Airborne;
-        }
-        if (DEBUG_MESSAGES) CLog.Write(aircraft.Name() + " is abbandoned on the ground.");
-        return EAircraftLocation.DitchedGround;
+        // write mission custom code above
+        /////////////////////////////////////
     }
 
-    /*public bool IsAircraftAtFriendlyAirfield(AiAircraft aircraft)
+    public override void OnAircraftKilled(int missionNumber, string shortName, AiAircraft aircraft)
     {
-        if (aircraft == null)
-        { 
-            return false; 
-        }
-        bool aircraftIsOnTheGround = false;
-        if (!aircraft.IsAirborne()) // Just spawen and never airborne.
-        {
-            aircraftIsOnTheGround = true;
-            if (DEBUG_MESSAGES) CLog.Write(aircraft.Name() + " is NOT airborne.");
-        }
-        else // Important notice! Aircraft that airborne once stays airborne forever, even after landed.
-        {
-            double aircraftAGL = aircraft.getParameter(part.ParameterTypes.Z_AltitudeAGL, -1);
-            double aircraftTAS = aircraft.getParameter(part.ParameterTypes.Z_VelocityTAS, -1);
-            if (DEBUG_MESSAGES) CLog.Write(aircraft.Name() + " is AGL=" + aircraftAGL.ToString() + "m and TAS=" + aircraftTAS.ToString() + "m/s");
-            if ((aircraftAGL < 5) && (aircraftTAS < 3.6))
-            {
-                aircraftIsOnTheGround = true;
-            }
-        }
+        base.OnAircraftKilled(missionNumber, shortName, aircraft);
+        missionCommon.OnAircraftKilled(missionNumber, shortName, aircraft);
+        /////////////////////////////////////
+        // write mission custom code below
 
-        if (aircraftIsOnTheGround)
-        {
-            Point3d aircraftPos = aircraft.Pos();
-            int aircraftArmy = aircraft.Army();
-            AiAirport airportFriendly;
-            Point3d airportFriendlyPos;
+        // ...
 
-            // lets find list of friendly airports
-            int friendlyAirportsListIdx = -1;
-            // skip neutral airports index 0
-            for (int i = 1; i < NeutralAirportsByArmies.Length; i++)
-            {
-                if (NeutralAirportsByArmies[i].Army == aircraftArmy)
-                {
-                    friendlyAirportsListIdx = i;
-                    break;
-                }
-            }
-            if (friendlyAirportsListIdx >= 0)
-            {
-                int airportsCount = NeutralAirportsByArmies[friendlyAirportsListIdx].aiAirports.Count;
-                for (int i = 0; i < airportsCount; i++)
-                {
-                    airportFriendly = NeutralAirportsByArmies[friendlyAirportsListIdx].aiAirports[i];
-                    airportFriendlyPos = airportFriendly.Pos();
-                    // Ok, this neutral airport contain friendly spawn area airport. Check if we are in this neutral airport radius
-                    double distToAirportFriendly = airportFriendlyPos.distanceLinf(ref aircraftPos);
-                    if (distToAirportFriendly < airportFriendly.CoverageR())
-                    {
-                        if (DEBUG_MESSAGES) CLog.Write(aircraft.Name() + " is on friendly airfiled " + airportFriendly.Name() + " distance " + distToAirportFriendly.ToString());
-                        return true;
-                    }
-                }
-            }
-            if (DEBUG_MESSAGES) CLog.Write(aircraft.Name() + " is abbandoned on the ground.");
-        }
-        else
-        {
-            if (DEBUG_MESSAGES) CLog.Write(aircraft.Name() + " is airborne.");
-        }
-        return false;
-    }*/
+        // write mission custom code above
+        /////////////////////////////////////
+    }
+
+    public override void OnAircraftLimbDamaged(int missionNumber, string shortName, AiAircraft aircraft, AiLimbDamage limbDamage)
+    {
+        base.OnAircraftLimbDamaged(missionNumber, shortName, aircraft, limbDamage);
+        missionCommon.OnAircraftLimbDamaged(missionNumber, shortName, aircraft, limbDamage);
+        /////////////////////////////////////
+        // write mission custom code below
+
+        // ...
+
+        // write mission custom code above
+        /////////////////////////////////////
+    }
+
+    public override void OnAutopilotOff(AiActor actor, int placeIndex)
+    {
+        base.OnAutopilotOff(actor, placeIndex);
+        missionCommon.OnAutopilotOff(actor, placeIndex);
+        /////////////////////////////////////
+        // write mission custom code below
+
+        // ...
+
+        // write mission custom code above
+        /////////////////////////////////////
+    }
+
+    public override void OnAutopilotOn(AiActor actor, int placeIndex)
+    {
+        base.OnAutopilotOn(actor, placeIndex);
+        missionCommon.OnAutopilotOn(actor, placeIndex);
+        /////////////////////////////////////
+        // write mission custom code below
+
+        // ...
+
+        // write mission custom code above
+        /////////////////////////////////////
+    }
+
+    public override void OnBombExplosion(string title, double mass, Point3d pos, AiDamageInitiator initiator, int eventArgInt)
+    {
+        base.OnBombExplosion(title, mass, pos, initiator, eventArgInt);
+        missionCommon.OnBombExplosion(title, mass, pos, initiator, eventArgInt);
+        /////////////////////////////////////
+        // write mission custom code below
+
+        // ...
+
+        // write mission custom code above
+        /////////////////////////////////////
+    }
+
+    public override void OnBuildingKilled(string title, Point3d pos, AiDamageInitiator initiator, int eventArgInt)
+    {
+        base.OnBuildingKilled(title, pos, initiator, eventArgInt);
+        missionCommon.OnBuildingKilled(title, pos, initiator, eventArgInt);
+        /////////////////////////////////////
+        // write mission custom code below
+
+        // ...
+
+        // write mission custom code above
+        /////////////////////////////////////
+    }
+
+    public override void OnCarter(AiActor actor, int placeIndex)
+    {
+        base.OnCarter(actor, placeIndex);
+        missionCommon.OnCarter(actor, placeIndex);
+        /////////////////////////////////////
+        // write mission custom code below
+
+        // ...
+
+        // write mission custom code above
+        /////////////////////////////////////
+    }
+
+    public override void OnMissionLoaded(int missionNumber)
+    {
+        base.OnMissionLoaded(missionNumber);
+        missionCommon.OnMissionLoaded(missionNumber);
+        /////////////////////////////////////
+        // write mission custom code below
+
+        // ...
+
+        // write mission custom code above
+        /////////////////////////////////////
+    }
+
+    public override void OnOrderMissionMenuSelected(Player player, int ID, int menuItemIndex)
+    {
+        base.OnOrderMissionMenuSelected(player, ID, menuItemIndex);
+        missionCommon.OnOrderMissionMenuSelected(player, ID, menuItemIndex);
+        /////////////////////////////////////
+        // write mission custom code below
+
+        // ...
+
+        // write mission custom code above
+        /////////////////////////////////////
+    }
+
+    public override void OnPersonHealth(AiPerson person, AiDamageInitiator initiator, float deltaHealth)
+    {
+        base.OnPersonHealth(person, initiator, deltaHealth);
+        missionCommon.OnPersonHealth(person, initiator, deltaHealth);
+        /////////////////////////////////////
+        // write mission custom code below
+
+        // ...
+
+        // write mission custom code above
+        /////////////////////////////////////
+    }
+
+    public override void OnPersonMoved(AiPerson person, AiActor fromCart, int fromPlaceIndex)
+    {
+        base.OnPersonMoved(person, fromCart, fromPlaceIndex);
+        missionCommon.OnPersonMoved(person, fromCart, fromPlaceIndex);
+        /////////////////////////////////////
+        // write mission custom code below
+
+        // ...
+
+        // write mission custom code above
+        /////////////////////////////////////
+    }
+
+    public override void OnPersonParachuteFailed(AiPerson person)
+    {
+        base.OnPersonParachuteFailed(person);
+        missionCommon.OnPersonParachuteFailed(person);
+        /////////////////////////////////////
+        // write mission custom code below
+
+        // ...
+
+        // write mission custom code above
+        /////////////////////////////////////
+    }
+
+    public override void OnPersonParachuteLanded(AiPerson person)
+    {
+        base.OnPersonParachuteLanded(person);
+        missionCommon.OnPersonParachuteLanded(person);
+        /////////////////////////////////////
+        // write mission custom code below
+
+        // ...
+
+        // write mission custom code above
+        /////////////////////////////////////
+    }
+
+
+    public override void OnPlaceEnter(Player player, AiActor actor, int placeIndex)
+    {
+        base.OnPlaceEnter(player, actor, placeIndex);
+        missionCommon.OnPlaceEnter(player, actor, placeIndex);
+        /////////////////////////////////////
+        // write mission custom code below
+
+        // ...
+
+        // write mission custom code above
+        /////////////////////////////////////
+    }
+
+    public override void OnPlayerArmy(Player player, int army)
+    {
+        base.OnPlayerArmy(player, army);
+        missionCommon.OnPlayerArmy(player, army);
+        /////////////////////////////////////
+        // write mission custom code below
+
+        // ...
+
+        // write mission custom code above
+        /////////////////////////////////////
+    }
+
+    public override void OnPlayerConnected(Player player)
+    {
+        base.OnPlayerConnected(player);
+        missionCommon.OnPlayerConnected(player);
+        /////////////////////////////////////
+        // write mission custom code below
+
+        // ...
+
+        // write mission custom code above
+        /////////////////////////////////////
+    }
+
+    public override void OnPlayerDisconnected(Player player, string diagnostic)
+    {
+        base.OnPlayerDisconnected(player, diagnostic);
+        missionCommon.OnPlayerDisconnected(player, diagnostic);
+        /////////////////////////////////////
+        // write mission custom code below
+
+        // ...
+
+        // write mission custom code above
+        /////////////////////////////////////
+    }
+
+    public override void OnStationaryKilled(int missionNumber, GroundStationary _stationary, AiDamageInitiator initiator, int eventArgInt)
+    {
+        base.OnStationaryKilled(missionNumber, _stationary, initiator, eventArgInt);
+        missionCommon.OnStationaryKilled(missionNumber, _stationary, initiator, eventArgInt);
+        /////////////////////////////////////
+        // write mission custom code below
+
+        // ...
+
+        // write mission custom code above
+        /////////////////////////////////////
+    }
+
+
+    public override void OnUserCreateUserLabel(GPUserLabel ul)
+    {
+        base.OnUserCreateUserLabel(ul);
+        missionCommon.OnUserCreateUserLabel(ul);
+        /////////////////////////////////////
+        // write mission custom code below
+
+        // ...
+
+        // write mission custom code above
+        /////////////////////////////////////
+    }
+
+    public override void OnUserDeleteUserLabel(GPUserLabel ul)
+    {
+        base.OnUserDeleteUserLabel(ul);
+        missionCommon.OnUserDeleteUserLabel(ul);
+        /////////////////////////////////////
+        // write mission custom code below
+
+        // ...
+
+        // write mission custom code above
+        /////////////////////////////////////
+    }
 }

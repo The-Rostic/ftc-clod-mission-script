@@ -38,7 +38,7 @@ using maddox.GP;//-----------------------------
 
 public class CKillDisusedPlanes {
     /// Set to true to see debug messages in server messages
-    public bool DEBUG_MESSAGES = true;
+    private const bool DEBUG_MESSAGES = true;
 
     // number of seconds to wait between damage and destroy of aircraft on friendly airfield
     protected const int TIMEOUT_NOTAIRBORNE = 1;
@@ -78,17 +78,17 @@ public class CKillDisusedPlanes {
     /// <param name="ActorMain"></param>
     protected void DamagePlane(AiActor ActorMain, Player CurPlayer)
     {
-        if (DEBUG_MESSAGES) CLog.Write("Try to damage/destroy aircraft" + ActorMain.Name() + " that was controlled by player " + CurPlayer.Name());
+        if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Try to damage/destroy aircraft" + ActorMain.Name() + " that was controlled by player " + CurPlayer.Name());
 
         if (ActorMain == null)
         {
-            if (DEBUG_MESSAGES) CLog.Write("Damage/destroy cancelled due to (ActorMain == null).");
+            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Damage/destroy cancelled due to (ActorMain == null).");
             return;
         }
 
         if (!(ActorMain is AiAircraft))
         {
-            if (DEBUG_MESSAGES) CLog.Write("Damage/destroy " + ActorMain.Name() + " cancelled. ActorMain is NOT AiAircraft");
+            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Damage/destroy " + ActorMain.Name() + " cancelled. ActorMain is NOT AiAircraft");
             return;
         }
 
@@ -96,20 +96,20 @@ public class CKillDisusedPlanes {
 
         if (!IsAiControlledPlane(Aircraft))
         {
-            if (DEBUG_MESSAGES) CLog.Write("Damage/destroy " + ActorMain.Name() + " cancelled. Player " + CurPlayer.Name() + " still in aircraft.");
+            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Damage/destroy " + ActorMain.Name() + " cancelled. Player " + CurPlayer.Name() + " still in aircraft.");
             return;
         }
 
         if (!Aircraft.IsAlive())
         {
-            if (DEBUG_MESSAGES) CLog.Write("Damage/destroy " + ActorMain.Name() + " cancelled due to it is NOT ALIVE already.");
+            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Damage/destroy " + ActorMain.Name() + " cancelled due to it is NOT ALIVE already.");
             return;
         }
 
         // If REALISTIC_DESPAWN disabled just destroy plane fast.
         if (!CConfig.REALISTIC_DESPAWN)
         {
-            if (DEBUG_MESSAGES) CLog.Write("Aircraft " + Aircraft.Name() + " will be destroyed immediately.");
+            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Aircraft " + Aircraft.Name() + " will be destroyed immediately.");
             m_Mission.Timeout(1, () =>
             {
                 DestroyPlane(Aircraft);
@@ -120,10 +120,10 @@ public class CKillDisusedPlanes {
         /// Make Damage
         /// We wrap in try ... catch to make sure at least *some* of them are effected
         /// no matter what happens (e.g. the Wing part throws on Blenheims)
-        Mission.EAircraftLocation aircraftLocation = (m_Mission as Mission).GetAircraftLocation(Aircraft);
-        if (aircraftLocation == Mission.EAircraftLocation.Airborne)
+        CMissionCommon.EAircraftLocation aircraftLocation = (m_Mission as Mission).missionCommon.GetAircraftLocation(Aircraft);
+        if (aircraftLocation == CMissionCommon.EAircraftLocation.Airborne)
         {
-            if (DEBUG_MESSAGES) CLog.Write("Aircraft" + ActorMain.Name() + " airborne. Damage will be done now to prevent AI control");
+            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Aircraft" + ActorMain.Name() + " airborne. Damage will be done now to prevent AI control");
             /// Damage named parts
             try
             {
@@ -137,7 +137,7 @@ public class CKillDisusedPlanes {
             }
             catch (Exception e)
             {
-                if (DEBUG_MESSAGES) CLog.Write("Exception on damaging named parts: " + e.ToString());
+                if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Exception on damaging named parts: " + e.ToString());
             }
 
             /// Damage wings
@@ -153,7 +153,7 @@ public class CKillDisusedPlanes {
             //}
             //catch(Exception e)
             //{
-            //    if(DEBUG_MESSAGES) CLog.Write("Exception on damaging wings: "+e.ToString());
+            //    if(DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Exception on damaging wings: "+e.ToString());
             //}
 
             /// Damage engines
@@ -168,19 +168,19 @@ public class CKillDisusedPlanes {
             }
             catch (Exception e)
             {
-                if (DEBUG_MESSAGES) CLog.Write("Exception on damageing engines: " + e.ToString());
+                if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Exception on damageing engines: " + e.ToString());
             }
         }
         else
         {
-            if (DEBUG_MESSAGES) CLog.Write("Aircraft " + ActorMain.Name() + " on the ground, no damage, just remove fuel from tanks for AI");
+            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Aircraft " + ActorMain.Name() + " on the ground, no damage, just remove fuel from tanks for AI");
             // aircraft on the ground, no need to brake it. Without fuel AI cant move to faraway
             Aircraft.RefuelPlane(0);
         }
 
         int iDestroyTimeout = TIMEOUT_ABANDONED;
-        if((aircraftLocation == Mission.EAircraftLocation.FriendlyAirfield)
-        || (aircraftLocation == Mission.EAircraftLocation.EnemyAirfield))
+        if((aircraftLocation == CMissionCommon.EAircraftLocation.FriendlyAirfield)
+        || (aircraftLocation == CMissionCommon.EAircraftLocation.EnemyAirfield))
         {
             iDestroyTimeout = TIMEOUT_ATFRIENDLYBASE;
             if (!Aircraft.IsAirborne())
@@ -192,7 +192,7 @@ public class CKillDisusedPlanes {
         // Destroy time! ... maybe.
         if (iDestroyTimeout > -1)
         {
-            if (DEBUG_MESSAGES) CLog.Write("Aircraft " + Aircraft.Name() + " will be destroyed in " + iDestroyTimeout.ToString() + " seconds.");
+            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Aircraft " + Aircraft.Name() + " will be destroyed in " + iDestroyTimeout.ToString() + " seconds.");
             m_Mission.Timeout(iDestroyTimeout, () =>
             {
                 DestroyPlane(Aircraft);
@@ -200,7 +200,7 @@ public class CKillDisusedPlanes {
         }
         else
         {
-            if (DEBUG_MESSAGES) CLog.Write("Aircraft " + Aircraft.Name() + " will be left abandoned. No destruction wil be done.");
+            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Aircraft " + Aircraft.Name() + " will be left abandoned. No destruction wil be done.");
         }
     }
     /// <summary>
@@ -212,17 +212,17 @@ public class CKillDisusedPlanes {
         {
             if (IsAiControlledPlane(Aircraft))
             {
-                if (DEBUG_MESSAGES) CLog.Write("DestroyPlane() : aircraft " + Aircraft.Name() + " to be destroyed right now.");
+                if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("DestroyPlane() : aircraft " + Aircraft.Name() + " to be destroyed right now.");
                 Aircraft.Destroy();
             }
             else
             {
-                if (DEBUG_MESSAGES) CLog.Write("DestroyPlane() : aircraft " + Aircraft.Name() + " will not to be destroyed beacuase player was found inside this aircraft.");
+                if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("DestroyPlane() : aircraft " + Aircraft.Name() + " will not to be destroyed beacuase player was found inside this aircraft.");
             }
         }
         else
         {
-            if (DEBUG_MESSAGES) CLog.Write("DestroyPlane() : no aircraft (Aircraft == null)");
+            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("DestroyPlane() : no aircraft (Aircraft == null)");
         }
     }
     /// <summary>
@@ -250,7 +250,7 @@ public class CKillDisusedPlanes {
         }
         catch (Exception e)
         {
-            if (DEBUG_MESSAGES) CLog.Write(e.ToString());
+            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write(e.ToString());
         }
 
         return true;
