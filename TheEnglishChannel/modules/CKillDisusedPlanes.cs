@@ -137,7 +137,7 @@ public class CKillDisusedPlanes {
             }
             catch (Exception e)
             {
-                if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Exception on damaging named parts: " + e.ToString());
+                if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write(e.ToString() + "\n" + e.Message.ToString());
             }
 
             /// Damage wings
@@ -153,7 +153,7 @@ public class CKillDisusedPlanes {
             //}
             //catch(Exception e)
             //{
-            //    if(DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Exception on damaging wings: "+e.ToString());
+            //    if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write(e.ToString() + "\n" + e.Message.ToString());
             //}
 
             /// Damage engines
@@ -168,7 +168,7 @@ public class CKillDisusedPlanes {
             }
             catch (Exception e)
             {
-                if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Exception on damageing engines: " + e.ToString());
+                if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write(e.ToString() + "\n" + e.Message.ToString());
             }
         }
         else
@@ -250,7 +250,7 @@ public class CKillDisusedPlanes {
         }
         catch (Exception e)
         {
-            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write(e.ToString());
+            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write(e.ToString() + "\n" + e.Message.ToString());
         }
 
         return true;

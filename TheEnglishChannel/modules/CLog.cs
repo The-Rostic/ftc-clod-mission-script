@@ -72,7 +72,7 @@ public static class CLog
                 }
                 catch (Exception ex)
                 {
-                    Write(ex.ToString());
+                    Write(ex.ToString() + "\n" + ex.Message.ToString());
                 }
                 m_LogFile = File.CreateText(dir + "\\Log_1.log");
 
@@ -80,7 +80,7 @@ public static class CLog
             }
             catch (Exception ex)
             {
-                Write(ex.ToString());
+                Write(ex.ToString() + "\n" + ex.Message.ToString());
                 m_LogFile = null;
             }
         }
