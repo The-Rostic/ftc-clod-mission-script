@@ -7,5 +7,5 @@ public static class CConfig : Object
 
 	public const bool DISABLE_LEAVE_MOVING_AIRCRAFT = true;
 	public const bool REALISTIC_DESPAWN = true; // if set to 'false' will despawn instantly
-	public const bool DISABLE_AI_TO_FLY_WITH_PLAYER_IN_SECONDARY_PLACE = true; // has no effect when when REALISTIC_DESPAWN set to 'true'
+	public const bool DISABLE_PLAYER_TO_FLY_AS_PASSANGER_WITH_AI_PILOT = true; // has no effect when when REALISTIC_DESPAWN set to 'true'
 }

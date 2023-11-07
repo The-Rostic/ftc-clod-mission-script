@@ -206,7 +206,7 @@ public class CKillDisusedPlanes {
     /// <summary>
     /// Destroy aircraft
     /// </summary> 
-    protected void DestroyPlane(AiAircraft Aircraft)
+    public void DestroyPlane(AiAircraft Aircraft)
     {
         if (Aircraft != null)
         {

@@ -46,12 +46,46 @@ public class CMissionCommon
         try
         {
             if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("OnPlaceEnter player=" + ((player != null) ? player.Name() : "=null") + " actor=" + ((actor != null) ? actor.Name() : "=null") + " placeIdx=" + placeIndex.ToString());
-            if ((actor != null) && (actor is AiAircraft) && (!m_KillDisusedPlanes.IsAiControlledPlane((actor as AiAircraft))))
+            // When player entering not pilot position do not care managing this aircraft
+            if ((actor != null) && (actor is AiAircraft) && (placeIndex == 0))
             {
+                // Player spawned aicraft waypoints update
                 AiAircraft aircraft = (actor as AiAircraft);
-                AiAircraftTryUpdatePlayerSpawnDefaultWay(aircraft);
-            }
+                bool isPlayerJustSpawnedAtSpawnArea = AiAircraftTryUpdatePlayerSpawnDefaultWay(aircraft);
 
+                if (CConfig.DISABLE_LEAVE_MOVING_AIRCRAFT)
+                {
+                    if (GetPlayerAssignedAiAircraftIdx(player) < 0)
+                    {
+                        if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Player " + player.Name() + " will be assigned to aricraft " + aircraft.Name());
+                        AssignPlayerToAiAircraft(player, aircraft);
+                    }
+                    else
+                    if (IsPlayerAssignedToAircraft(player, aircraft))
+                    {
+                        if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Player " + player.Name() + " already assigned to this aricraft " + aircraft.Name() + " returned by script?");
+                    }
+                    else
+                    {
+                        if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Player " + player.Name() + " alread assigned to another aricraft!");
+                        
+                        if (CConfig.REALISTIC_DESPAWN && isPlayerJustSpawnedAtSpawnArea)
+                        {
+                            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("This aricraft " + aircraft.Name() + " is about to be destroyed!");
+                            // This aircraft will be leaved by player by script! But not destroyed due to it's already airborn! Let's destroy it!
+                            BaseMission.Timeout(0.1, () =>
+                            {
+                                m_KillDisusedPlanes.DestroyPlane(aircraft);
+                            });
+                        }
+                        else
+                        {
+                            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("This aricraft " + aircraft.Name() + " will be intact. Let it fly!");
+                        }
+                    }
+                }
+
+            }
         }
         catch (Exception e)
         {
@@ -69,79 +103,90 @@ public class CMissionCommon
                 if ((player != null) && (actor != null) && player.IsConnected() && (actor is AiAircraft))
                 {
                     AiAircraft aircraft = actor as AiAircraft;
-                    if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Player " + player.Name() + " is trying to leave aircraft " + aircraft.Name());
-                    bool isAiControlled = m_KillDisusedPlanes.IsAiControlledPlane(aircraft);
-                    if (isAiControlled || (placeIndex == 0)) //pilot cann't leave airborne aircraft even if another seat occupied
+                    if (IsPlayerAssignedToAircraft(player, aircraft))
                     {
-                        if (aircraft.IsAlive() && (aircraft.Person(0) != null) && (aircraft.Person(0).Health > 0) && aircraft.IsValid())
+                        if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Player " + player.Name() + " is trying to leave aircraft " + aircraft.Name());
+                        bool isAiControlled = m_KillDisusedPlanes.IsAiControlledPlane(aircraft);
+                        if (isAiControlled || (placeIndex == 0)) //pilot cann't leave airborne aircraft even if another seat occupied
                         {
-                            //EAircraftLocation aircraftLocation = GetAircraftLocation(aircraft);
-                            double aircraftTAS = aircraft.getParameter(part.ParameterTypes.Z_VelocityTAS, -1);
-                            // Do not  allow leave moving aircraft!
-                            if (aircraftTAS > 1.0)
+                            if (aircraft.IsAlive() && (aircraft.Person(0) != null) && (aircraft.Person(0).Health > 0) && aircraft.IsValid())
                             {
-                                if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Player " + player.Name() + " is in moving aircraft and is about to enter pilot seat again " + aircraft.Name());
-                                BaseMission.Timeout((player.Ping() + 50) * 0.001, () =>
+                                //EAircraftLocation aircraftLocation = GetAircraftLocation(aircraft);
+                                double aircraftTAS = aircraft.getParameter(part.ParameterTypes.Z_VelocityTAS, -1);
+                                // Do not  allow leave moving aircraft!
+                                if (aircraftTAS > 1.0)
                                 {
-                                    player.PlaceEnter(actor, 0);
-                                });
-                                Player[] recepients = { player };
-                                BaseMission.GamePlay.gpHUDLogCenter(recepients, "Bailout, crash or land!");
-                                return;
+                                    if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Player " + player.Name() + " is in moving aircraft and is about to enter pilot seat again " + aircraft.Name());
+                                    BaseMission.Timeout((player.Ping() + 50) * 0.001, () =>
+                                    {
+                                        player.PlaceEnter(actor, 0);
+                                    });
+                                    Player[] recepients = { player };
+                                    BaseMission.GamePlay.gpHUDLogCenter(recepients, "Bailout, crash or land!");
+                                    return;
+                                }
+                                else
+                                {
+                                    if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Player " + player.Name() + " aircraft not moving.");
+                                }
+                                if (!isAiControlled)
+                                {
+                                    // Hey! Pilot left but lets check if he is occupying other places
+                                    int primIdx = player.PlacePrimary();
+                                    int secIdx = player.PlaceSecondary();
+                                    if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Hey! Player still in aircraft! PlacePrimary=" + primIdx.ToString() + " PlaceSecondary=" + secIdx.ToString());
+                                    if (primIdx >= 0)
+                                    {
+                                        // have to generate new on leave event and do stuff there
+                                        BaseMission.Timeout(1, () =>
+                                        {
+                                            player.PlaceLeave(primIdx);
+                                        });
+                                        return;
+                                    }
+                                    if (secIdx >= 0)
+                                    {
+                                        // have to generate new on leave event and do stuff there
+                                        BaseMission.Timeout(1, () =>
+                                        {
+                                            player.PlaceLeave(secIdx);
+                                        });
+                                        return;
+                                    }
+
+                                }
+                                DropPlayerFromAssignedAiAircraft(player);
+                                if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Ok, it is allowed to leave pilot seat. Player resigned from aircraft.");
                             }
                             else
                             {
-                                if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Player " + player.Name() + " aircraft not moving.");
-                            }
-                            if (!isAiControlled)
-                            {
-                                // Hey! Pilot left but 
-                                int primIdx = player.PlacePrimary();
-                                int secIdx = player.PlaceSecondary();
-                                if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Hey! Player still in aircraft! PlacePrimary=" + primIdx.ToString() + " PlaceSecondary=" + secIdx.ToString());
-                                if (primIdx >= 0)
+                                // (aircraft.IsAlive() && (aircraft.Person(0) != null) && (aircraft.Person(0).Health > 0) && aircraft.IsValid())
+                                if (DEBUG_MESSAGES && CLog.IsInitialized)
                                 {
-                                    // have to generate new on leave event and do stuff there
-                                    BaseMission.Timeout(1, () =>
-                                    {
-                                        player.PlaceLeave(primIdx);
-                                    });
-                                    return;
-                                }
-                                if (secIdx >= 0)
-                                {
-                                    // have to generate new on leave event and do stuff there
-                                    BaseMission.Timeout(1, () =>
-                                    {
-                                        player.PlaceLeave(secIdx);
-                                    });
-                                    return;
+                                    string msg = "It seems like aricraft can't be piloted... "
+                                        + ((!aircraft.IsAlive()) ? "--- (!aircraft.IsAlive())" : "")
+                                        + ((aircraft.Person(0) == null) ? "--- (Person(0) == null)" : "")
+                                        + (((aircraft.Person(0) != null) && (aircraft.Person(0).Health == 0)) ? "--- (aircraft.Person(0).Health <= 0)" : "")
+                                        + ((!aircraft.IsValid()) ? "--- (!aircraft.IsValid())" : "");
+                                    CLog.Write(msg);
                                 }
                             }
-                            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Ok, it is allowed to leave pilot seat.");
                         }
                         else
                         {
-                            // (aircraft.IsAlive() && (aircraft.Person(0) != null) && (aircraft.Person(0).Health > 0) && aircraft.IsValid())
+                            //if (isAiControlled || (placeIndex == 0))
                             if (DEBUG_MESSAGES && CLog.IsInitialized)
                             {
-                                string msg = "It seems like aricraft can't be piloted... "
-                                    + ((!aircraft.IsAlive()) ? "--- (!aircraft.IsAlive())" : "")
-                                    + ((aircraft.Person(0) == null) ? "--- (Person(0) == null)" : "")
-                                    + (((aircraft.Person(0) != null) && (aircraft.Person(0).Health == 0)) ? "--- (aircraft.Person(0).Health <= 0)" : "")
-                                    + ((!aircraft.IsValid()) ? "--- (!aircraft.IsValid())" : "");
-                                CLog.Write(msg);
+                                CLog.Write("It seems like aricraft still piloted... --- (!isAiControlled && (placeIndex != 0)) no need to call KillDisusedPlanes.OnPlaceLeave() just free place");
+                                return;
                             }
                         }
                     }
                     else
                     {
-                        //if (isAiControlled || (placeIndex == 0))
-                        if (DEBUG_MESSAGES && CLog.IsInitialized)
-                        {
-                            CLog.Write("It seems like aricraft still piloted... --- (!isAiControlled && (placeIndex != 0)) no need to call KillDisusedPlanes.OnPlaceLeave() just free place");
-                            return;
-                        }
+                        if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Player " + player.Name() + " not assigned to this aircraft.");
+                        // do not destroy unassigned aircraft!
+                        return;
                     }
                 }
                 else
@@ -157,9 +202,11 @@ public class CMissionCommon
                         CLog.Write(msg);
                     }
                 }
+
+                // ... at this point it is decided aircraft to be destroyed...
             }
             else
-            if (CConfig.DISABLE_AI_TO_FLY_WITH_PLAYER_IN_SECONDARY_PLACE)
+            if (CConfig.DISABLE_PLAYER_TO_FLY_AS_PASSANGER_WITH_AI_PILOT)
             {
                 //
                 // When trying to leave pilot place then leave all places in aircraft and then destroy it! Disable AI to fly mission!
@@ -466,44 +513,108 @@ public class CMissionCommon
         return EAircraftLocation.DitchedGround;
     }
 
-    public void AiAircraftTryUpdatePlayerSpawnDefaultWay(AiAircraft aircraft)
+    // Currently player spawned aircraft at spawn are assigned with 3 waypoints in radius about 1 km
+    // If player just entered aircraft with similar waypoint it is decided that this aircraft was spawned by player at spawn area.
+    // If this function stopped working properly, then write new one :)
+    public bool IsAircraftPlayerSpawnedAtSpawnArea(AiAircraft aircraft)
     {
         AiWayPoint[] aiWayPoints = aircraft.Group().GetWay();
-        if (aiWayPoints == null)
-        {
-            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("NULL AI waypoints");
-        }
-        else
-        {
-            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Not null AI waypoints");
-        }
         if (aiWayPoints[0] is AiAirWayPoint)
         {
             if (aiWayPoints.Length == 3)
             {
-                if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("3 waypoint path");
                 Point3d p1 = aiWayPoints[1].P;
                 if ((aiWayPoints[0].P.distanceLinf(ref p1) < 2000)
                 && (aiWayPoints[2].P.distanceLinf(ref p1) < 2000))
                 {
-                    if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Looks like default path! Change mid way point to normal fly far away");
-                    aiWayPoints[1].P.x = p1.x + 200000;
-                    aiWayPoints[1].P.y = p1.y + 200000;
-                    aiWayPoints[1].P.z = p1.z;
-                    aircraft.Group().SetWay(aiWayPoints);
+                    return true;
                 }
             }
-            else
-            {
-                if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write(aiWayPoints.Length.ToString() + " waypoint path");
-            }
         }
-        else
+        return false;
+    }
+
+    public bool AiAircraftTryUpdatePlayerSpawnDefaultWay(AiAircraft aircraft)
+    {
+        AiWayPoint[] aiWayPoints = aircraft.Group().GetWay();
+        if (IsAircraftPlayerSpawnedAtSpawnArea(aircraft))
+        { 
+            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Looks like default path! Change mid way point to normal fly far away");
+            //aiWayPoints[1].P.x = aiWayPoints[1].P.x + 20000;
+            aiWayPoints[1].P.y = aiWayPoints[1].P.y + 1000;
+            //aiWayPoints[1].P.z = aiWayPoints[1].P.z;
+            aircraft.Group().SetWay(aiWayPoints);
+            return true;
+        }
+        return false;
+    }
+
+    public class PlayerAssignedToAiAircraft
+    {
+        public Player player = null;
+        public AiAircraft aircraft = null;
+        public PlayerAssignedToAiAircraft(Player _player, AiAircraft _aircraft)
         {
-            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Not AiAirWayPoint waypoints!");
+            player = _player;
+            aircraft = _aircraft;
         }
     }
 
+    List<PlayerAssignedToAiAircraft> PlayersAssignedAircrafts = new List<PlayerAssignedToAiAircraft>();
+
+    public void AssignPlayerToAiAircraft(Player player, AiAircraft aircraft)
+    {
+        if (player == null)
+            return;
+        int playerIdx = GetPlayerAssignedAiAircraftIdx(player);
+        if (playerIdx < 0)
+        {
+            //add new
+            PlayersAssignedAircrafts.Add(new PlayerAssignedToAiAircraft(player, aircraft));
+        }
+        else
+        {
+            // replce old by new
+            PlayersAssignedAircrafts[playerIdx].aircraft = aircraft;
+        }
+    }
+
+    public bool IsPlayerAssignedToAircraft(Player player, AiAircraft aircraft)
+    {
+        int playerIdx = GetPlayerAssignedAiAircraftIdx(player);
+        if (playerIdx >= 0)
+        {
+            if (PlayersAssignedAircrafts[playerIdx].aircraft.Equals(aircraft))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public int GetPlayerAssignedAiAircraftIdx(Player player)
+    {
+        for (int i = 0; i < PlayersAssignedAircrafts.Count; i++)
+        {
+            if (PlayersAssignedAircrafts[i].player.Equals(player))
+            {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+
+    public void DropPlayerFromAssignedAiAircraft(Player player)
+    {
+        for (int i = 0; i < PlayersAssignedAircrafts.Count; i++)
+        {
+            if (PlayersAssignedAircrafts[i].player.Equals(player))
+            {
+                PlayersAssignedAircrafts.RemoveAt(i);
+            }
+        }
+    }
 
     ///////////////////////////////////////////////////
     ///////////////////////////////////////////////////
