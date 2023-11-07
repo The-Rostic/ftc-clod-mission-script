@@ -41,6 +41,33 @@ public class CMissionCommon
         CLog.Close();
     }
 
+    public void OnPlayerDisconnected(Player player, string diagnostic)
+    {
+        try
+        {
+            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("OnPlayerDisconnected player=" + ((player != null) ? player.Name() : "=null") + " diagnostic=" + diagnostic);
+            if (player != null)
+            {
+                int playerIdx = GetPlayerAssignedAiAircraftIdx(player);
+                if (playerIdx >= 0)
+                {
+                    AiAircraft aircraft = PlayersAssignedAircrafts[playerIdx].aircraft;
+                    if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Player was assigned to aircraft! Resign now and destroy aircraft!");
+                    DropPlayerFromAssignedAiAircraft(player);
+                    BaseMission.Timeout(0.1, () =>
+                    {
+                        m_KillDisusedPlanes.DestroyPlane(aircraft);
+                    });
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write(e.ToString() + "\n" + e.Message.ToString());
+        }
+    }
+
+
     public void OnPlaceEnter(Player player, AiActor actor, int placeIndex)
     {
         try
@@ -153,14 +180,12 @@ public class CMissionCommon
                                         });
                                         return;
                                     }
-
                                 }
-                                DropPlayerFromAssignedAiAircraft(player);
-                                if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Ok, it is allowed to leave pilot seat. Player resigned from aircraft.");
+                                if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Ok, it is allowed to leave pilot seat.");
                             }
                             else
                             {
-                                // (aircraft.IsAlive() && (aircraft.Person(0) != null) && (aircraft.Person(0).Health > 0) && aircraft.IsValid())
+                                
                                 if (DEBUG_MESSAGES && CLog.IsInitialized)
                                 {
                                     string msg = "It seems like aricraft can't be piloted... "
@@ -181,6 +206,9 @@ public class CMissionCommon
                                 return;
                             }
                         }
+                        // Player is assigned to aircraft... have to be resigned
+                        DropPlayerFromAssignedAiAircraft(player);
+                        if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Player resigned from aircraft.");
                     }
                     else
                     {
@@ -1010,18 +1038,6 @@ public class CMissionCommon
         try
         {
             if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("OnPlayerConnected player=" + ((player != null) ? player.Name() : "=null"));
-        }
-        catch (Exception e)
-        {
-            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write(e.ToString() + "\n" + e.Message.ToString());
-        }
-    }
-
-    public void OnPlayerDisconnected(Player player, string diagnostic)
-    {
-        try
-        {
-            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("OnPlayerDisconnected player=" + ((player != null) ? player.Name() : "=null") + " diagnostic=" + diagnostic);
         }
         catch (Exception e)
         {
