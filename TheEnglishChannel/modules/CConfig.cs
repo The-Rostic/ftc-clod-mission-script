@@ -2,7 +2,7 @@ using System;
 
 public static class CConfig : Object
 {
-	public const bool DEBUG_LOCAL_LOG_ENABLE = true;
+	public const bool DEBUG_LOCAL_LOG_ENABLE = false;
 	public const bool DEBUG_SERVER_LOG_ENABLE = true;
 
 	public const bool DISABLE_LEAVE_MOVING_AIRCRAFT = true;
