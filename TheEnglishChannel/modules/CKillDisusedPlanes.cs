@@ -175,6 +175,11 @@ public class CKillDisusedPlanes {
         {
             if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Aircraft " + ActorMain.Name() + " on the ground, no damage, just remove fuel from tanks for AI");
             // aircraft on the ground, no need to brake it. Without fuel AI cant move to faraway
+            if (!(m_Mission as Mission).missionCommon.IsDefueledAircraft(Aircraft, false))
+            {
+                int fuelPct = Aircraft.GetCurrentFuelQuantityInPercent();
+                (m_Mission as Mission).missionCommon.DefueledAcircrafts.Add(new CMissionCommon.DefueledAircraft(Aircraft, fuelPct));
+            }
             Aircraft.RefuelPlane(0);
         }
 

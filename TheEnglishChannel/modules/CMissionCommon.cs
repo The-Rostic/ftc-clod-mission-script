@@ -86,6 +86,8 @@ public class CMissionCommon
                     {
                         if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Player " + player.Name() + " will be assigned to aricraft " + aircraft.Name());
                         AssignPlayerToAiAircraft(player, aircraft);
+                        // check if aircraft defueled and refuel it back
+                        IsDefueledAircraft(aircraft, true);
                     }
                     else
                     if (IsPlayerAssignedToAircraft(player, aircraft))
@@ -298,6 +300,12 @@ public class CMissionCommon
     //                    //
     ////////////////////////
 
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //
+    //  Airport search and sort management fucntions
+    //
+
     private class CAirportIndexes
     {
         public int Army = -1;
@@ -450,6 +458,11 @@ public class CMissionCommon
         }
     }
 
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Aircraft location detection funcitons
+    //
+
     public enum EAircraftLocation
     {
         Unknown = 0,
@@ -541,9 +554,14 @@ public class CMissionCommon
         return EAircraftLocation.DitchedGround;
     }
 
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //
     // Currently player spawned aircraft at spawn are assigned with 3 waypoints in radius about 1 km
     // If player just entered aircraft with similar waypoint it is decided that this aircraft was spawned by player at spawn area.
     // If this function stopped working properly, then write new one :)
+    //
+    //
+
     public bool IsAircraftPlayerSpawnedAtSpawnArea(AiAircraft aircraft)
     {
         AiWayPoint[] aiWayPoints = aircraft.Group().GetWay();
@@ -567,7 +585,7 @@ public class CMissionCommon
         AiWayPoint[] aiWayPoints = aircraft.Group().GetWay();
         if (IsAircraftPlayerSpawnedAtSpawnArea(aircraft))
         { 
-            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Looks like default path! Change mid way point to normal fly far away");
+            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Looks player spawned in spawn area! Reset default waypoints...");
             //aiWayPoints[1].P.x = aiWayPoints[1].P.x + 20000;
             aiWayPoints[1].P.y = aiWayPoints[1].P.y + 1000;
             //aiWayPoints[1].P.z = aiWayPoints[1].P.z;
@@ -644,6 +662,44 @@ public class CMissionCommon
         }
     }
 
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Set of functions to defuel abandoned aircrafts on the ground and refuel them back when pilot returned.
+    //
+    public class DefueledAircraft
+    {
+        public AiAircraft aircraft = null;
+        public int fuelPctBeforeDefuel = 0;
+
+        public DefueledAircraft(AiAircraft aircraft, int fuelPctBeforeDefuel)
+        {
+            this.aircraft = aircraft;
+            this.fuelPctBeforeDefuel = fuelPctBeforeDefuel;
+        }
+    }
+    public List<DefueledAircraft> DefueledAcircrafts = new List<DefueledAircraft>();
+
+    public bool IsDefueledAircraft(AiAircraft aiAircraft, bool refuelAndDrop)
+    {
+        if (aiAircraft != null)
+        {
+            for (int i = 0; i < DefueledAcircrafts.Count; i++)
+            {
+                if (DefueledAcircrafts[i].aircraft.Equals(aiAircraft))
+                {
+                    if (refuelAndDrop)
+                    {
+                        DefueledAcircrafts[i].aircraft.RefuelPlane(DefueledAcircrafts[i].fuelPctBeforeDefuel);
+                        DefueledAcircrafts.RemoveAt(i);
+                    }
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////
     ///////////////////////////////////////////////////
     ////                                           ////
