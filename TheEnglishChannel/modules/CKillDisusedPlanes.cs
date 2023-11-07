@@ -44,7 +44,7 @@ public class CKillDisusedPlanes {
     protected const int TIMEOUT_NOTAIRBORNE = 1;
 
     // number of seconds to wait between damage and destroy of aircraft on friendly airfield
-    protected const int TIMEOUT_ATFRIENDLYBASE = 600;
+    protected const int TIMEOUT_ATOPERATIONALAIRBASE = 600;
 
     // number of seconds to wait between damage and destroy airborne aircraft
     protected const int TIMEOUT_ABANDONED = -1; // < 0 means do not destroy aircraft
@@ -187,7 +187,7 @@ public class CKillDisusedPlanes {
         if((aircraftLocation == CMissionCommon.EAircraftLocation.FriendlyAirfield)
         || (aircraftLocation == CMissionCommon.EAircraftLocation.EnemyAirfield))
         {
-            iDestroyTimeout = TIMEOUT_ATFRIENDLYBASE;
+            iDestroyTimeout = TIMEOUT_ATOPERATIONALAIRBASE;
             if (!Aircraft.IsAirborne())
             {
                 iDestroyTimeout = TIMEOUT_NOTAIRBORNE;

@@ -9,7 +9,6 @@ using System.Threading;
 using System.Diagnostics;
 using part;
 using maddox.GP; //-------------------
-
 public class CMissionCommon
 {
     private const bool DEBUG_MESSAGES = true;
@@ -502,32 +501,32 @@ public class CMissionCommon
         {
             Point3d aircraftPos = aircraft.Pos();
             int aircraftArmy = aircraft.Army();
-            AiAirport airportFriendly;
-            Point3d airportFriendlyPos;
 
-            // lets find list of friendly airports
-            int friendlyAirportsListIdx = -1;
-            for (int i = 0; i < NeutralAirportsByArmies.Length; i++)
+            for (int armyIdx = 0; armyIdx < NeutralAirportsByArmies.Length; armyIdx++)
             {
-                if (NeutralAirportsByArmies[i].Army == aircraftArmy)
+                for (int airportIdx = 0; airportIdx < NeutralAirportsByArmies[armyIdx].aiAirports.Count; airportIdx++)
                 {
-                    friendlyAirportsListIdx = i;
-                    break;
-                }
-            }
-            if (friendlyAirportsListIdx >= 0)
-            {
-                int airportsCount = NeutralAirportsByArmies[friendlyAirportsListIdx].aiAirports.Count;
-                for (int i = 0; i < airportsCount; i++)
-                {
-                    airportFriendly = NeutralAirportsByArmies[friendlyAirportsListIdx].aiAirports[i];
-                    airportFriendlyPos = airportFriendly.Pos();
-                    // Ok, this neutral airport contain friendly spawn area airport. Check if we are in this neutral airport radius
-                    double distToAirportFriendly = airportFriendlyPos.distanceLinf(ref aircraftPos);
-                    if (distToAirportFriendly < airportFriendly.CoverageR())
+                    AiAirport airportFromList = NeutralAirportsByArmies[armyIdx].aiAirports[airportIdx];
+                    Point3d airportFromListPos = airportFromList.Pos();
+                    double distanceToAirportFromList = airportFromListPos.distanceLinf(ref aircraftPos);
+                    if (distanceToAirportFromList < airportFromList.CoverageR())
                     {
-                        if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write(aircraft.Name() + " is on friendly airfiled " + airportFriendly.Name() + " distance " + distToAirportFriendly.ToString());
-                        return EAircraftLocation.FriendlyAirfield;
+                        int airportFromListArmy = NeutralAirportsByArmies[armyIdx].Army;
+                        if (airportFromListArmy == aircraftArmy)
+                        {
+                            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write(aircraft.Name() + " is on friendly airfiled " + airportFromList.Name() + " distance " + distanceToAirportFromList.ToString());
+                            return EAircraftLocation.FriendlyAirfield;
+                        }
+                        else if (airportFromListArmy == 0)
+                        {
+                            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write(aircraft.Name() + " is on neutral airfiled " + airportFromList.Name() + " distance " + distanceToAirportFromList.ToString());
+                            return EAircraftLocation.NeutralAirfield;
+                        }
+                        else
+                        {
+                            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write(aircraft.Name() + " is on enemy airfiled " + airportFromList.Name() + " distance " + distanceToAirportFromList.ToString());
+                            return EAircraftLocation.EnemyAirfield;
+                        }
                     }
                 }
             }
@@ -535,9 +534,9 @@ public class CMissionCommon
             if (BaseMission.GamePlay.gpLandType(aircraftPos.x, aircraftPos.y) == LandTypes.WATER)
             {
                 if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write(aircraft.Name() + " is ditched in to the water.");
-                return EAircraftLocation.DitchedGround;
+                return EAircraftLocation.DitchedSea;
             }
-            //// Do not unkomment code below. It may feel like that is nice logic, but EAircraftLocation.DitchedGround will be returned in the end of function.
+            //// Do not uncomment code below. It may feel like that is nice logic, but EAircraftLocation.DitchedGround will be returned in the end of function.
             //else
             //{
             //    if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write(aircraft.Name() + " is abbandoned on the ground.");

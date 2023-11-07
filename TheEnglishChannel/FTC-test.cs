@@ -66,6 +66,32 @@ public class Mission : AMission
         /////////////////////////////////////
     }
 
+    public override void OnPlayerDisconnected(Player player, string diagnostic)
+    {
+        base.OnPlayerDisconnected(player, diagnostic);
+        missionCommon.OnPlayerDisconnected(player, diagnostic);
+        /////////////////////////////////////
+        // write mission custom code below
+
+        // ...
+
+        // write mission custom code above
+        /////////////////////////////////////
+    }
+
+    public override void OnPlaceEnter(Player player, AiActor actor, int placeIndex)
+    {
+        base.OnPlaceEnter(player, actor, placeIndex);
+        missionCommon.OnPlaceEnter(player, actor, placeIndex);
+        /////////////////////////////////////
+        // write mission custom code below
+
+        // ...
+
+        // write mission custom code above
+        /////////////////////////////////////
+    }
+
     public override void OnPlaceLeave(Player player, AiActor actor, int placeIndex)
     {
         base.OnPlaceLeave(player, actor, placeIndex);
@@ -423,20 +449,6 @@ public class Mission : AMission
         /////////////////////////////////////
     }
 
-
-    public override void OnPlaceEnter(Player player, AiActor actor, int placeIndex)
-    {
-        base.OnPlaceEnter(player, actor, placeIndex);
-        missionCommon.OnPlaceEnter(player, actor, placeIndex);
-        /////////////////////////////////////
-        // write mission custom code below
-
-        // ...
-
-        // write mission custom code above
-        /////////////////////////////////////
-    }
-
     public override void OnPlayerArmy(Player player, int army)
     {
         base.OnPlayerArmy(player, army);
@@ -454,19 +466,6 @@ public class Mission : AMission
     {
         base.OnPlayerConnected(player);
         missionCommon.OnPlayerConnected(player);
-        /////////////////////////////////////
-        // write mission custom code below
-
-        // ...
-
-        // write mission custom code above
-        /////////////////////////////////////
-    }
-
-    public override void OnPlayerDisconnected(Player player, string diagnostic)
-    {
-        base.OnPlayerDisconnected(player, diagnostic);
-        missionCommon.OnPlayerDisconnected(player, diagnostic);
         /////////////////////////////////////
         // write mission custom code below
 
