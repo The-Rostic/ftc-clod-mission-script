@@ -96,7 +96,18 @@ public class CKillDisusedPlanes {
 
         if (!IsAiControlledPlane(Aircraft))
         {
-            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Damage/destroy " + ActorMain.Name() + " cancelled. Player " + CurPlayer.Name() + " still in aircraft.");
+            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Damage/destroy " + ActorMain.Name() + " cancelled. Player still in aircraft.");
+            if (Aircraft.Player(0) == null)
+            {
+                if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("But there is no pilot! Remove fuel from tanks for AI pilot!");
+                //Without fuel AI can't move to faraway
+                if (!(m_Mission as Mission).missionCommon.IsDefueledAircraft(Aircraft, false))
+                {
+                    int fuelPct = Aircraft.GetCurrentFuelQuantityInPercent();
+                    (m_Mission as Mission).missionCommon.DefueledAcircrafts.Add(new CMissionCommon.DefueledAircraft(Aircraft, fuelPct));
+                }
+                Aircraft.RefuelPlane(0);
+            }
             return;
         }
 
