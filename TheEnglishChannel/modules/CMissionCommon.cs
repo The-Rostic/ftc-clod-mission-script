@@ -97,11 +97,10 @@ public class CMissionCommon
                     else
                     {
                         if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Player " + player.Name() + " alread assigned to another aricraft!");
-                        
-                        if (CConfig.REALISTIC_DESPAWN && isPlayerJustSpawnedAtSpawnArea)
+                        if (CConfig.DISABLE_LEAVE_MOVING_AIRCRAFT && isPlayerJustSpawnedAtSpawnArea)
                         {
                             if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("This aricraft " + aircraft.Name() + " is about to be destroyed!");
-                            // This aircraft will be leaved by player by script! But not destroyed due to it's already airborn! Let's destroy it!
+                            // PLayer will be removed from this newly created aircraft by script! But not destroyed in OnPlaceLeave() due to he is already assigned to another aircraft! Let's destroy it here!
                             BaseMission.Timeout(0.1, () =>
                             {
                                 m_KillDisusedPlanes.DestroyPlane(aircraft);
@@ -210,7 +209,7 @@ public class CMissionCommon
                     }
                     else
                     {
-                        if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Player " + player.Name() + " not assigned to this aircraft.");
+                        if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Player " + player.Name() + " not assigned to this aircraft. Do not destroy unassigned aircraft!");
                         // do not destroy unassigned aircraft!
                         return;
                     }
@@ -580,7 +579,7 @@ public class CMissionCommon
     {
         if (IsAircraftPlayerSpawnedAtSpawnArea(aircraft))
         {
-            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Looks player spawned in spawn area! Reset default waypoints...");
+            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Looks like player spawned in spawn area! Reset default waypoints to avoid useless GC orders to land right after takeoff...");
             AiWayPoint[] aiWayPoints = aircraft.Group().GetWay();
             aiWayPoints[1].P.y = aiWayPoints[1].P.y + 5000;
             aircraft.Group().SetWay(aiWayPoints);
@@ -589,6 +588,10 @@ public class CMissionCommon
         return false;
     }
 
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Player assigning and resigning to/from aircraft logic
+    //
     public class PlayerAssignedToAiAircraft
     {
         public Player player = null;
@@ -1043,9 +1046,9 @@ public class CMissionCommon
     {
         try
         {
-            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("OnPersonMoved person=" + ((person != null) ? person.Name() : "=null")
+            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("OnPersonMoved person=" + ((person != null) ? person.Name() + ((person.Player() != null)?" (player=" + person.Player().Name()+")" : " (no player)") : "=null")
                 + " fromCart=" + ((fromCart != null) ? fromCart.Name() : "=null")
-                + " fromPlaceIndex=" + fromPlaceIndex.ToString());
+                + " fromPlaceIndex=" + fromPlaceIndex.ToString()) ;
         }
         catch (Exception e)
         {

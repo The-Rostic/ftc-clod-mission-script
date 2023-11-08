@@ -118,7 +118,7 @@ public class CKillDisusedPlanes {
         }
 
         // If REALISTIC_DESPAWN disabled just destroy plane fast.
-        if (!CConfig.REALISTIC_DESPAWN)
+        if (!CConfig.REALISTIC_AIRCRAFT_DESPAWN_TIMEOUT)
         {
             if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Aircraft " + Aircraft.Name() + " will be destroyed immediately.");
             m_Mission.Timeout(1, () =>
@@ -224,21 +224,28 @@ public class CKillDisusedPlanes {
     /// </summary> 
     public void DestroyPlane(AiAircraft Aircraft)
     {
-        if (Aircraft != null)
+        try
         {
-            if (IsNoPLayersInAircraft(Aircraft))
+            if (Aircraft != null)
             {
-                if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("DestroyPlane() : aircraft " + Aircraft.Name() + " to be destroyed right now.");
-                Aircraft.Destroy();
+                if (IsNoPLayersInAircraft(Aircraft))
+                {
+                    if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("DestroyPlane() : aircraft " + Aircraft.Name() + " to be destroyed right now.");
+                    Aircraft.Destroy();
+                }
+                else
+                {
+                    if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("DestroyPlane() : aircraft " + Aircraft.Name() + " will not to be destroyed beacuase player was found inside this aircraft.");
+                }
             }
             else
             {
-                if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("DestroyPlane() : aircraft " + Aircraft.Name() + " will not to be destroyed beacuase player was found inside this aircraft.");
+                if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("DestroyPlane() : no aircraft (Aircraft == null)");
             }
         }
-        else
+        catch(Exception e)
         {
-            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("DestroyPlane() : no aircraft (Aircraft == null)");
+            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write(e.ToString() + "\n" + e.Message.ToString());
         }
     }
     /// <summary>
