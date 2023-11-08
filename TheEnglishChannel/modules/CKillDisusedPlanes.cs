@@ -1,11 +1,4 @@
 ///
-/// Remove Planes Abandoned by Players. Prevents Outside Views, too.
-///
-/// This is used for making sure that the plane a player has left
-/// cannot be regained (outside views) and is removed from the game.
-///
-///
-///
 /// === Example integration into Mission ===
 ///
 /// //$include <put-your-path-here>/CKillDisusedPlanes.cs
@@ -68,15 +61,15 @@ public class CKillDisusedPlanes {
     public void OnPlaceLeave(Player CurPlayer, AiActor ActorMain, int iPlaceIndex)
     {
         m_Mission.Timeout(1, () => {
-            DamagePlane(ActorMain, CurPlayer); 
+            TryDamagePlane(ActorMain, CurPlayer); 
         });
     }
     /// <summary>
-    /// Make an AI controlled aircraft unusable
+    /// Make an AI controlled aircraft unusable if have to
     /// </summary> 
     /// <param name="CurPlayer"></param>
     /// <param name="ActorMain"></param>
-    protected void DamagePlane(AiActor ActorMain, Player CurPlayer)
+    protected void TryDamagePlane(AiActor ActorMain, Player CurPlayer)
     {
         if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Try to damage/destroy aircraft" + ActorMain.Name() + " that was controlled by player " + CurPlayer.Name());
 

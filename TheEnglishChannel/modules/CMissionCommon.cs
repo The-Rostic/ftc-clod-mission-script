@@ -80,7 +80,7 @@ public class CMissionCommon
                 AiAircraft aircraft = (actor as AiAircraft);
                 bool isPlayerJustSpawnedAtSpawnArea = AiAircraftTryUpdatePlayerSpawnDefaultWay(aircraft);
 
-                if (CConfig.DISABLE_LEAVE_MOVING_AIRCRAFT)
+                if (CConfig.DISABLE_PILOT_TO_LEAVE_MOVING_AIRCRAFT)
                 {
                     if (GetPlayerAssignedAiAircraftIdx(player) < 0)
                     {
@@ -97,7 +97,7 @@ public class CMissionCommon
                     else
                     {
                         if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Player " + player.Name() + " alread assigned to another aricraft!");
-                        if (CConfig.DISABLE_LEAVE_MOVING_AIRCRAFT && isPlayerJustSpawnedAtSpawnArea)
+                        if (CConfig.DISABLE_PILOT_TO_LEAVE_MOVING_AIRCRAFT && isPlayerJustSpawnedAtSpawnArea)
                         {
                             if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("This aricraft " + aircraft.Name() + " is about to be destroyed!");
                             // PLayer will be removed from this newly created aircraft by script! But not destroyed in OnPlaceLeave() due to he is already assigned to another aircraft! Let's destroy it here!
@@ -126,7 +126,7 @@ public class CMissionCommon
         try
         {
             if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("OnPlaceLeave player=" + ((player != null) ? player.Name() : "=null") + " actor=" + ((actor != null) ? actor.Name() : "=null") + " placeIdx=" + placeIndex.ToString());
-            if (CConfig.DISABLE_LEAVE_MOVING_AIRCRAFT)
+            if (CConfig.DISABLE_PILOT_TO_LEAVE_MOVING_AIRCRAFT)
             {
                 if ((player != null) && (actor != null) && player.IsConnected() && (actor is AiAircraft))
                 {
