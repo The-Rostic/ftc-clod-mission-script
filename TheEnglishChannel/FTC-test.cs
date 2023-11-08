@@ -163,18 +163,19 @@ public class Mission : AMission
         /////////////////////////////////////
     }
 
-    public override void OnActorDamaged(int missionNumber, string shortName, AiActor actor, AiDamageInitiator initiator, NamedDamageTypes damageType)
-    {
-        base.OnActorDamaged(missionNumber, shortName, actor, initiator, damageType);
-        missionCommon.OnActorDamaged(missionNumber, shortName, actor, initiator, damageType);
-        /////////////////////////////////////
-        // write mission custom code below
-
-        // ...
-
-        // write mission custom code above
-        /////////////////////////////////////
-    }
+    //// COMENTED DUE TO A LOT OF EVENTS GENERATED
+    //public override void OnActorDamaged(int missionNumber, string shortName, AiActor actor, AiDamageInitiator initiator, NamedDamageTypes damageType)
+    //{
+    //    base.OnActorDamaged(missionNumber, shortName, actor, initiator, damageType);
+    //    missionCommon.OnActorDamaged(missionNumber, shortName, actor, initiator, damageType);
+    //    /////////////////////////////////////
+    //    // write mission custom code below
+    //
+    //    // ...
+    //
+    //    // write mission custom code above
+    //    /////////////////////////////////////
+    //}
 
 
     public override void OnActorDead(int missionNumber, string shortName, AiActor actor, List<DamagerScore> damages)
@@ -254,31 +255,33 @@ public class Mission : AMission
         /////////////////////////////////////
     }
 
-    public override void OnAircraftCutLimb(int missionNumber, string shortName, AiAircraft aircraft, AiDamageInitiator initiator, LimbNames limbName)
-    {
-        base.OnAircraftCutLimb(missionNumber, shortName, aircraft, initiator, limbName);
-        missionCommon.OnAircraftCutLimb(missionNumber, shortName, aircraft, initiator, limbName);
-        /////////////////////////////////////
-        // write mission custom code below
+    //// COMENTED DUE TO A LOT OF EVENTS GENERATED
+    //public override void OnAircraftCutLimb(int missionNumber, string shortName, AiAircraft aircraft, AiDamageInitiator initiator, LimbNames limbName)
+    //{
+    //    base.OnAircraftCutLimb(missionNumber, shortName, aircraft, initiator, limbName);
+    //    missionCommon.OnAircraftCutLimb(missionNumber, shortName, aircraft, initiator, limbName);
+    //    /////////////////////////////////////
+    //    // write mission custom code below
+    //
+    //    // ...
+    //
+    //    // write mission custom code above
+    //    /////////////////////////////////////
+    //}
 
-        // ...
-
-        // write mission custom code above
-        /////////////////////////////////////
-    }
-
-    public override void OnAircraftDamaged(int missionNumber, string shortName, AiAircraft aircraft, AiDamageInitiator initiator, NamedDamageTypes damageType)
-    {
-        base.OnAircraftDamaged(missionNumber, shortName, aircraft, initiator, damageType);
-        missionCommon.OnAircraftDamaged(missionNumber, shortName, aircraft, initiator, damageType);
-        /////////////////////////////////////
-        // write mission custom code below
-
-        // ...
-
-        // write mission custom code above
-        /////////////////////////////////////
-    }
+    //// COMMENTED DUE TO TO MANY EXCEPTION GENERATED HERE
+    //public override void OnAircraftDamaged(int missionNumber, string shortName, AiAircraft aircraft, AiDamageInitiator initiator, NamedDamageTypes damageType)
+    //{
+    //    base.OnAircraftDamaged(missionNumber, shortName, aircraft, initiator, damageType);
+    //    missionCommon.OnAircraftDamaged(missionNumber, shortName, aircraft, initiator, damageType);
+    //    /////////////////////////////////////
+    //    // write mission custom code below
+    //
+    //    // ...
+    //
+    //    // write mission custom code above
+    //    /////////////////////////////////////
+    //}
 
     public override void OnAircraftKilled(int missionNumber, string shortName, AiAircraft aircraft)
     {
@@ -293,18 +296,19 @@ public class Mission : AMission
         /////////////////////////////////////
     }
 
-    public override void OnAircraftLimbDamaged(int missionNumber, string shortName, AiAircraft aircraft, AiLimbDamage limbDamage)
-    {
-        base.OnAircraftLimbDamaged(missionNumber, shortName, aircraft, limbDamage);
-        missionCommon.OnAircraftLimbDamaged(missionNumber, shortName, aircraft, limbDamage);
-        /////////////////////////////////////
-        // write mission custom code below
-
-        // ...
-
-        // write mission custom code above
-        /////////////////////////////////////
-    }
+    //// COMENTED DUE TO A LOT OF EVENTS GENERATED
+    //public override void OnAircraftLimbDamaged(int missionNumber, string shortName, AiAircraft aircraft, AiLimbDamage limbDamage)
+    //{
+    //    base.OnAircraftLimbDamaged(missionNumber, shortName, aircraft, limbDamage);
+    //    missionCommon.OnAircraftLimbDamaged(missionNumber, shortName, aircraft, limbDamage);
+    //    /////////////////////////////////////
+    //    // write mission custom code below
+    //
+    //    // ...
+    //
+    //    // write mission custom code above
+    //    /////////////////////////////////////
+    //}
 
     public override void OnAutopilotOff(AiActor actor, int placeIndex)
     {
@@ -397,18 +401,19 @@ public class Mission : AMission
         /////////////////////////////////////
     }
 
-    public override void OnPersonHealth(AiPerson person, AiDamageInitiator initiator, float deltaHealth)
-    {
-        base.OnPersonHealth(person, initiator, deltaHealth);
-        missionCommon.OnPersonHealth(person, initiator, deltaHealth);
-        /////////////////////////////////////
-        // write mission custom code below
-
-        // ...
-
-        // write mission custom code above
-        /////////////////////////////////////
-    }
+    //// COMENTED DUE TO A LOT OF EVENTS GENERATED
+    //public override void OnPersonHealth(AiPerson person, AiDamageInitiator initiator, float deltaHealth)
+    //{
+    //    base.OnPersonHealth(person, initiator, deltaHealth);
+    //    missionCommon.OnPersonHealth(person, initiator, deltaHealth);
+    //    /////////////////////////////////////
+    //    // write mission custom code below
+    //
+    //    // ...
+    //
+    //    // write mission custom code above
+    //    /////////////////////////////////////
+    //}
 
     public override void OnPersonMoved(AiPerson person, AiActor fromCart, int fromPlaceIndex)
     {
@@ -488,30 +493,31 @@ public class Mission : AMission
         /////////////////////////////////////
     }
 
+    //// SINGLE PLAYER SPECIFIC
+    //public override void OnUserCreateUserLabel(GPUserLabel ul)
+    //{
+    //    base.OnUserCreateUserLabel(ul);
+    //    missionCommon.OnUserCreateUserLabel(ul);
+    //    /////////////////////////////////////
+    //    // write mission custom code below
+    //
+    //    // ...
+    //
+    //    // write mission custom code above
+    //    /////////////////////////////////////
+    //}
 
-    public override void OnUserCreateUserLabel(GPUserLabel ul)
-    {
-        base.OnUserCreateUserLabel(ul);
-        missionCommon.OnUserCreateUserLabel(ul);
-        /////////////////////////////////////
-        // write mission custom code below
-
-        // ...
-
-        // write mission custom code above
-        /////////////////////////////////////
-    }
-
-    public override void OnUserDeleteUserLabel(GPUserLabel ul)
-    {
-        base.OnUserDeleteUserLabel(ul);
-        missionCommon.OnUserDeleteUserLabel(ul);
-        /////////////////////////////////////
-        // write mission custom code below
-
-        // ...
-
-        // write mission custom code above
-        /////////////////////////////////////
-    }
+    //// SINGLE PLAYER SPECIFIC
+    //public override void OnUserDeleteUserLabel(GPUserLabel ul)
+    //{
+    //    base.OnUserDeleteUserLabel(ul);
+    //    missionCommon.OnUserDeleteUserLabel(ul);
+    //    /////////////////////////////////////
+    //    // write mission custom code below
+    //
+    //    // ...
+    //
+    //    // write mission custom code above
+    //    /////////////////////////////////////
+    //}
 }

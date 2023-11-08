@@ -132,9 +132,7 @@ public static class CLog
 
             if (CConfig.DEBUG_SERVER_LOG_ENABLE)
             {
-                //m_Mission.GamePlay.gpLogServer(logmsg);
-                m_Mission.GamePlay.gpLogServer(null, logmsg, null);
-                //m_Mission.GamePlay.gpLogServer(new Player[] { m_Mission.GamePlay.gpPlayer() }, logmsg, null);
+                m_Mission.GamePlay.gpLogServer(logmsg);
             }
         }
     }

@@ -94,7 +94,7 @@ public class CKillDisusedPlanes {
 
         AiAircraft Aircraft = (ActorMain as AiAircraft);
 
-        if (!IsAiControlledPlane(Aircraft))
+        if (!IsNoPLayersInAircraft(Aircraft))
         {
             if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Damage/destroy " + ActorMain.Name() + " cancelled. Player still in aircraft.");
             if (Aircraft.Player(0) == null)
@@ -226,7 +226,7 @@ public class CKillDisusedPlanes {
     {
         if (Aircraft != null)
         {
-            if (IsAiControlledPlane(Aircraft))
+            if (IsNoPLayersInAircraft(Aircraft))
             {
                 if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("DestroyPlane() : aircraft " + Aircraft.Name() + " to be destroyed right now.");
                 Aircraft.Destroy();
@@ -242,11 +242,11 @@ public class CKillDisusedPlanes {
         }
     }
     /// <summary>
-    /// Check if aircraft is truly AI only controlled.
+    /// Check if no players in aircraft
     /// </summary> 
     /// <param name="Aircraft"></param>
     /// <returns>true if no real player is in any of the plane's positions</returns>
-    public bool IsAiControlledPlane(AiAircraft Aircraft)
+    public bool IsNoPLayersInAircraft(AiAircraft Aircraft)
     {
         try
         {

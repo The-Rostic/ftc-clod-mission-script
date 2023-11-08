@@ -9,6 +9,7 @@ using System.Threading;
 using System.Diagnostics;
 using part;
 using maddox.GP; //-------------------
+
 public class CMissionCommon
 {
     private const bool DEBUG_MESSAGES = true;
@@ -51,7 +52,7 @@ public class CMissionCommon
                 if (playerIdx >= 0)
                 {
                     AiAircraft aircraft = PlayersAssignedAircrafts[playerIdx].aircraft;
-                    if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Player was assigned to aircraft! Resign now and destroy aircraft!");
+                    if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Player " + player.Name() + " was assigned to aircraft! Resign now and destroy aircraft!");
                     DropPlayerFromAssignedAiAircraft(player);
                     BaseMission.Timeout(0.1, () =>
                     {
@@ -133,9 +134,9 @@ public class CMissionCommon
                     AiAircraft aircraft = actor as AiAircraft;
                     if (IsPlayerAssignedToAircraft(player, aircraft))
                     {
-                        if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Player " + player.Name() + " is trying to leave aircraft " + aircraft.Name());
-                        bool isAiControlled = m_KillDisusedPlanes.IsAiControlledPlane(aircraft);
-                        if (isAiControlled || (placeIndex == 0)) //pilot cann't leave airborne aircraft even if another seat occupied
+                        if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Player " + player.Name() + " is trying to leave place in aircraft " + aircraft.Name());
+                        bool isNoPlayersInAircraft = m_KillDisusedPlanes.IsNoPLayersInAircraft(aircraft);
+                        if (isNoPlayersInAircraft || (placeIndex == 0)) //pilot cann't leave airborne aircraft even if another seat occupied
                         {
                             if (aircraft.IsAlive() && (aircraft.Person(0) != null) && (aircraft.Person(0).Health > 0) && aircraft.IsValid())
                             {
@@ -157,7 +158,7 @@ public class CMissionCommon
                                 {
                                     if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Player " + player.Name() + " aircraft not moving.");
                                 }
-                                if (!isAiControlled)
+                                if (!isNoPlayersInAircraft)
                                 {
                                     // Hey! Pilot left but lets check if he is occupying other places
                                     int primIdx = player.PlacePrimary();
@@ -198,14 +199,10 @@ public class CMissionCommon
                                 }
                             }
                         }
-                        else
+                        else //if (!isNoPlayersInAircraft && (placeIndex != 0))
                         {
-                            //if (isAiControlled || (placeIndex == 0))
-                            if (DEBUG_MESSAGES && CLog.IsInitialized)
-                            {
-                                CLog.Write("It seems like aricraft still piloted... --- (!isAiControlled && (placeIndex != 0)) no need to call KillDisusedPlanes.OnPlaceLeave() just free place");
-                                return;
-                            }
+                            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("At least some one is still in aircraft and player " + player.Name() + " not a pilot. No need to call KillDisusedPlanes.OnPlaceLeave(). Just free place");
+                            return;
                         }
                         // Player is assigned to aircraft... have to be resigned
                         DropPlayerFromAssignedAiAircraft(player);
@@ -244,8 +241,8 @@ public class CMissionCommon
                 {
                     AiAircraft aircraft = actor as AiAircraft;
                     if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Player " + player.Name() + " is trying to leave aircraft " + aircraft.Name());
-                    bool isAiControlled = m_KillDisusedPlanes.IsAiControlledPlane(aircraft);
-                    if ((placeIndex == 0) && !isAiControlled)
+                    bool isNoPlayersInAircraft = m_KillDisusedPlanes.IsNoPLayersInAircraft(aircraft);
+                    if ((placeIndex == 0) && !isNoPlayersInAircraft)
                     {
                         int primIdx = player.PlacePrimary();
                         int secIdx = player.PlaceSecondary();
@@ -581,13 +578,11 @@ public class CMissionCommon
 
     public bool AiAircraftTryUpdatePlayerSpawnDefaultWay(AiAircraft aircraft)
     {
-        AiWayPoint[] aiWayPoints = aircraft.Group().GetWay();
         if (IsAircraftPlayerSpawnedAtSpawnArea(aircraft))
-        { 
+        {
             if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Looks player spawned in spawn area! Reset default waypoints...");
-            //aiWayPoints[1].P.x = aiWayPoints[1].P.x + 20000;
-            aiWayPoints[1].P.y = aiWayPoints[1].P.y + 1000;
-            //aiWayPoints[1].P.z = aiWayPoints[1].P.z;
+            AiWayPoint[] aiWayPoints = aircraft.Group().GetWay();
+            aiWayPoints[1].P.y = aiWayPoints[1].P.y + 5000;
             aircraft.Group().SetWay(aiWayPoints);
             return true;
         }
@@ -778,26 +773,27 @@ public class CMissionCommon
         }
     }
 
-    public void OnActorDamaged(int missionNumber, string shortName, AiActor actor, AiDamageInitiator initiator, NamedDamageTypes damageType)
-    {
-        try
-        {
-            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("OnActorDamaged missionNumber="
-                + missionNumber.ToString()
-                + " shortName=" + shortName
-                + " actor=" + ((actor != null) ? actor.Name() : "=null")
-                + " initiator is " + ((initiator != null) ? (" Actor={" + ((initiator.Actor != null) ? initiator.Actor.Name() : "=null")
-                                                            + " Person=" + ((initiator.Person != null) ? initiator.Person.Name() : "=null")
-                                                            + " Player=" + ((initiator.Player != null) ? initiator.Player.Name() : "=null")
-                                                            + " Tool=" + ((initiator.Tool != null) ? initiator.Tool.Type.ToString() + "}" : "=null}"))
-                                                          : "=null}")
-                + " damageType=" + damageType.ToString());
-        }
-        catch (Exception e)
-        {
-            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write(e.ToString() + "\n" + e.Message.ToString());
-        }
-    }
+    //// COMENTED DUE TO A LOT OF EVENTS GENERATED
+    //public void OnActorDamaged(int missionNumber, string shortName, AiActor actor, AiDamageInitiator initiator, NamedDamageTypes damageType)
+    //{
+    //    try
+    //    {
+    //        if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("OnActorDamaged missionNumber="
+    //            + missionNumber.ToString()
+    //            + " shortName=" + shortName
+    //            + " actor=" + ((actor != null) ? actor.Name() : "=null")
+    //            + " initiator is " + ((initiator != null) ? (" Actor={" + ((initiator.Actor != null) ? initiator.Actor.Name() : "=null")
+    //                                                        + " Person=" + ((initiator.Person != null) ? initiator.Person.Name() : "=null")
+    //                                                        + " Player=" + ((initiator.Player != null) ? initiator.Player.Name() : "=null")
+    //                                                        + " Tool=" + ((initiator.Tool != null) ? initiator.Tool.Type.ToString() + "}" : "=null}"))
+    //                                                      : "=null}")
+    //            + " damageType=" + damageType.ToString());
+    //    }
+    //    catch (Exception e)
+    //    {
+    //        if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write(e.ToString() + "\n" + e.Message.ToString());
+    //    }
+    //}
 
     public void OnActorDead(int missionNumber, string shortName, AiActor actor, List<DamagerScore> damages)
     {
@@ -857,44 +853,46 @@ public class CMissionCommon
         }
     }
 
-    public void OnAircraftCutLimb(int missionNumber, string shortName, AiAircraft aircraft, AiDamageInitiator initiator, LimbNames limbName)
-    {
-        try
-        {
-            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("OnAircraftCutLimb missionNumber=" + missionNumber.ToString() + " shortName=" + shortName + " aircraft=" + ((aircraft != null) ? aircraft.Name() : "=null")
-                + " initiator is {" + ((initiator != null) ? (" Actor=" + ((initiator.Actor != null) ? initiator.Actor.Name() : "=null")
-                                                            + " Person=" + ((initiator.Person != null) ? initiator.Person.Name() : "=null")
-                                                            + " Player=" + ((initiator.Player != null) ? initiator.Player.Name() : "=null")
-                                                            + " Tool=" + ((initiator.Tool != null) ? initiator.Tool.Type.ToString() + "}" : "=null}"))
-                                                          : "=null}")
-                + " limbName=" + limbName.ToString());
-        }
-        catch (Exception e)
-        {
-            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write(e.ToString() + "\n" + e.Message.ToString());
-        }
-    }
+    //// COMENTED DUE TO A LOT OF EVENTS GENERATED
+    //public void OnAircraftCutLimb(int missionNumber, string shortName, AiAircraft aircraft, AiDamageInitiator initiator, LimbNames limbName)
+    //{
+    //    try
+    //    {
+    //        if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("OnAircraftCutLimb missionNumber=" + missionNumber.ToString() + " shortName=" + shortName + " aircraft=" + ((aircraft != null) ? aircraft.Name() : "=null")
+    //            + " initiator is {" + ((initiator != null) ? (" Actor=" + ((initiator.Actor != null) ? initiator.Actor.Name() : "=null")
+    //                                                        + " Person=" + ((initiator.Person != null) ? initiator.Person.Name() : "=null")
+    //                                                        + " Player=" + ((initiator.Player != null) ? initiator.Player.Name() : "=null")
+    //                                                        + " Tool=" + ((initiator.Tool != null) ? initiator.Tool.Type.ToString() + "}" : "=null}"))
+    //                                                      : "=null}")
+    //            + " limbName=" + limbName.ToString());
+    //    }
+    //    catch (Exception e)
+    //    {
+    //        if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write(e.ToString() + "\n" + e.Message.ToString());
+    //    }
+    //}
 
-    public void OnAircraftDamaged(int missionNumber, string shortName, AiAircraft aircraft, AiDamageInitiator initiator, NamedDamageTypes damageType)
-    {
-        try
-        {
-            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("OnActorDamaged missionNumber="
-                + missionNumber.ToString()
-                + " shortName=" + shortName
-                + " aircraft=" + ((aircraft != null) ? aircraft.Name() : "=null")
-                + " initiator is {" + ((initiator != null) ? (" Actor=" + ((initiator.Actor != null) ? initiator.Actor.Name() : "=null")
-                                                            + " Person=" + ((initiator.Person != null) ? initiator.Person.Name() : "=null")
-                                                            + " Player=" + ((initiator.Player != null) ? initiator.Player.Name() : "=null")
-                                                            + " Tool=" + ((initiator.Tool != null) ? initiator.Tool.Type.ToString() + "}" : "=null}"))
-                                                          : "=null}")
-                + " damageType=" + damageType.ToString());
-        }
-        catch (Exception e)
-        {
-            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write(e.ToString() + "\n" + e.Message.ToString());
-        }
-    }
+    //// COMMENTED DUE TO TO MANY EXCEPTION GENERATED HERE
+    //public void OnAircraftDamaged(int missionNumber, string shortName, AiAircraft aircraft, AiDamageInitiator initiator, NamedDamageTypes damageType)
+    //{
+    //    try
+    //    {
+    //        if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("OnActorDamaged missionNumber="
+    //            + missionNumber.ToString()
+    //            + " shortName=" + shortName
+    //            + " aircraft=" + ((aircraft != null) ? aircraft.Name() : "=null")
+    //            + " initiator is {" + ((initiator != null) ? (" Actor=" + ((initiator.Actor != null) ? initiator.Actor.Name() : "=null")
+    //                                                        + " Person=" + ((initiator.Person != null) ? initiator.Person.Name() : "=null")
+    //                                                        + " Player=" + ((initiator.Player != null) ? initiator.Player.Name() : "=null")
+    //                                                        + " Tool=" + ((initiator.Tool != null) ? initiator.Tool.Type.ToString() + "}" : "=null}"))
+    //                                                      : "=null}")
+    //            + " damageType=" + damageType.ToString());
+    //    }
+    //    catch (Exception e)
+    //    {
+    //        if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write(e.ToString() + "\n" + e.Message.ToString());
+    //    }
+    //}
 
     public void OnAircraftKilled(int missionNumber, string shortName, AiAircraft aircraft)
     {
@@ -908,20 +906,21 @@ public class CMissionCommon
         }
     }
 
-    public void OnAircraftLimbDamaged(int missionNumber, string shortName, AiAircraft aircraft, AiLimbDamage limbDamage)
-    {
-        try
-        {
-            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("OnAircraftLimbDamaged missionNumber=" + missionNumber.ToString()
-                + " shortName=" + shortName
-                + " aircraft=" + ((aircraft != null) ? aircraft.Name() : "=null")
-                + " limbDamage is {" + ((limbDamage == null) ? "=null" : " LimbId=" + limbDamage.LimbId.ToString() + " ... and other parameters }"));
-        }
-        catch (Exception e)
-        {
-            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write(e.ToString() + "\n" + e.Message.ToString());
-        }
-    }
+    //// COMENTED DUE TO A LOT OF EVENTS GENERATED
+    //public void OnAircraftLimbDamaged(int missionNumber, string shortName, AiAircraft aircraft, AiLimbDamage limbDamage)
+    //{
+    //    try
+    //    {
+    //        if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("OnAircraftLimbDamaged missionNumber=" + missionNumber.ToString()
+    //            + " shortName=" + shortName
+    //            + " aircraft=" + ((aircraft != null) ? aircraft.Name() : "=null")
+    //            + " limbDamage is {" + ((limbDamage == null) ? "=null" : " LimbId=" + limbDamage.LimbId.ToString() + " ... and other parameters }"));
+    //    }
+    //    catch (Exception e)
+    //    {
+    //        if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write(e.ToString() + "\n" + e.Message.ToString());
+    //    }
+    //}
 
     public void OnAutopilotOff(AiActor actor, int placeIndex)
     {
@@ -1021,23 +1020,24 @@ public class CMissionCommon
         }
     }
 
-    public void OnPersonHealth(AiPerson person, AiDamageInitiator initiator, float deltaHealth)
-    {
-        try
-        {
-            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("OnPersonHealth person=" + ((person != null) ? person.Name() : "=null")
-                + " initiator is {" + ((initiator != null) ? (" Actor=" + ((initiator.Actor != null) ? initiator.Actor.Name() : "=null")
-                                                            + " Person=" + ((initiator.Person != null) ? initiator.Person.Name() : "=null")
-                                                            + " Player=" + ((initiator.Player != null) ? initiator.Player.Name() : "=null")
-                                                            + " Tool=" + ((initiator.Tool != null) ? initiator.Tool.Type.ToString() + "}" : "=null}"))
-                                                          : "=null}")
-                + " deltaHealth=" + deltaHealth.ToString());
-        }
-        catch (Exception e)
-        {
-            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write(e.ToString() + "\n" + e.Message.ToString());
-        }
-    }
+    //// COMENTED DUE TO A LOT OF EVENTS GENERATED
+    //public void OnPersonHealth(AiPerson person, AiDamageInitiator initiator, float deltaHealth)
+    //{
+    //    try
+    //    {
+    //        if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("OnPersonHealth person=" + ((person != null) ? person.Name() : "=null")
+    //            + " initiator is {" + ((initiator != null) ? (" Actor=" + ((initiator.Actor != null) ? initiator.Actor.Name() : "=null")
+    //                                                        + " Person=" + ((initiator.Person != null) ? initiator.Person.Name() : "=null")
+    //                                                        + " Player=" + ((initiator.Player != null) ? initiator.Player.Name() : "=null")
+    //                                                        + " Tool=" + ((initiator.Tool != null) ? initiator.Tool.Type.ToString() + "}" : "=null}"))
+    //                                                      : "=null}")
+    //            + " deltaHealth=" + deltaHealth.ToString());
+    //    }
+    //    catch (Exception e)
+    //    {
+    //        if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write(e.ToString() + "\n" + e.Message.ToString());
+    //    }
+    //}
 
     public void OnPersonMoved(AiPerson person, AiActor fromCart, int fromPlaceIndex)
     {
@@ -1120,31 +1120,33 @@ public class CMissionCommon
         }
     }
 
-    public void OnUserCreateUserLabel(GPUserLabel ul)
-    {
-        try
-        {
-            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("OnUserCreateUserLabel ul is {" + ((ul != null) ? (" Player=" + ((ul.Player != null) ? ul.Player.Name() : "=null")
-                                                                                            + " Type=" + ul.type.ToString() + "}")
-                                                                                           : "null}"));
-        }
-        catch (Exception e)
-        {
-            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write(e.ToString() + "\n" + e.Message.ToString());
-        }
-    }
+    //// SINGLEPLAYER SPECIFIC
+    //public void OnUserCreateUserLabel(GPUserLabel ul)
+    //{
+    //    try
+    //    {
+    //        if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("OnUserCreateUserLabel ul is {" + ((ul != null) ? (" Player=" + ((ul.Player != null) ? ul.Player.Name() : "=null")
+    //                                                                                        + " Type=" + ul.type.ToString() + "}")
+    //                                                                                       : "null}"));
+    //    }
+    //    catch (Exception e)
+    //    {
+    //        if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write(e.ToString() + "\n" + e.Message.ToString());
+    //    }
+    //}
 
-    public void OnUserDeleteUserLabel(GPUserLabel ul)
-    {
-        try
-        {
-            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("OnUserCreateUserLabel ul is {" + ((ul != null) ? (" Player=" + ((ul.Player != null) ? ul.Player.Name() : "=null")
-                                                                                            + " Type=" + ul.type.ToString() + "}")
-                                                                                           : "null}"));
-        }
-        catch (Exception e)
-        {
-            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write(e.ToString() + "\n" + e.Message.ToString());
-        }
-    }
+    // SINGLEPLAYER SPECIFIC
+    //public void OnUserDeleteUserLabel(GPUserLabel ul)
+    //{
+    //    try
+    //    {
+    //        if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("OnUserCreateUserLabel ul is {" + ((ul != null) ? (" Player=" + ((ul.Player != null) ? ul.Player.Name() : "=null")
+    //                                                                                        + " Type=" + ul.type.ToString() + "}")
+    //                                                                                       : "null}"));
+    //    }
+    //    catch (Exception e)
+    //    {
+    //        if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write(e.ToString() + "\n" + e.Message.ToString());
+    //    }
+    //}
 }
