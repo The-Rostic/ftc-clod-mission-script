@@ -20,6 +20,15 @@ public class Mission : AMission
     public const bool DEBUG_MESSAGES = true;
     public CMissionCommon missionCommon = null;
 
+    public void StartAIhunters()
+    {
+        GamePlay.gpPostMissionLoad(@"missions\Multi\Dogfight\FTC-BattleOfBritain\bob-mis-000-sub-bf109.mis");
+        GamePlay.gpPostMissionLoad(@"missions\Multi\Dogfight\FTC-BattleOfBritain\bob-mis-000-sub-spits.mis");
+        Timeout(60*15, () =>
+        {
+            StartAIhunters();
+        });
+    }
 
     public override void OnBattleInit()
     {
@@ -44,7 +53,10 @@ public class Mission : AMission
         /////////////////////////////////////
         // write mission custom code below
 
-        // ...
+        Timeout(15, () =>
+        {
+            StartAIhunters();
+        });
 
         // write mission custom code above
         /////////////////////////////////////
