@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.IO;
+using System.Text;
 using System;
 using System.Collections;
 using maddox.game;
@@ -22,8 +23,8 @@ public class Mission : AMission
 
     public void StartAIhunters()
     {
-        GamePlay.gpPostMissionLoad(@"missions\Multi\Dogfight\FTC-BattleOfBritain\bob-mis-000-sub-bf109.mis");
-        GamePlay.gpPostMissionLoad(@"missions\Multi\Dogfight\FTC-BattleOfBritain\bob-mis-000-sub-spits.mis");
+        GamePlay.gpPostMissionLoad(Path.GetDirectoryName(this.sPathMyself) + @"\bob-mis-000-sub-bf109.mis");
+        GamePlay.gpPostMissionLoad(Path.GetDirectoryName(this.sPathMyself) + @"\bob-mis-000-sub-spits.mis");
         Timeout(60*15, () =>
         {
             StartAIhunters();
