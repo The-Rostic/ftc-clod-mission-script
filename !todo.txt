@@ -1,0 +1,1 @@
+- Add performance analyzing log in OnTick() event. Calculate tick intervals: avg, min, max, internal tick event functions time (log, radar).
