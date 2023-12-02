@@ -41,6 +41,90 @@ public class CMissionCommon
         CLog.Close();
     }
 
+    private struct GameTick
+    {
+        public long Min;
+        public long Max;
+        public long Avg;
+        public long AvgCnt;
+        public long LogTick;
+    }
+
+    private const long TICKS_IN_SECOND = 10000000;
+    private const long PERFORMANCE_LOG_INTERVAL = TICKS_IN_SECOND;
+    GameTick GameTickData = new GameTick { Max = 0, Min = 1000* PERFORMANCE_LOG_INTERVAL, Avg = 0, AvgCnt = 0, LogTick = 0 };
+    private long GameTickLast = -1; // 1 tick is equal to 100 nano secods. 10000000 ticks in second
+    private long GameTickLastLog = -1;
+    private DateTime GameTickDt;
+    public void OnTickGame()
+    {
+        // NO DEBUG LOG HERE!!! HAVE TO BE ULTRA FAST FUNCTION!!!
+        if (CConfig.DEBUG_PERFORMANCE_LOG_ENABLE && CConfig.IsLoggingEnabled() && CLog.IsInitialized)
+        {
+            GameTickDt = DateTime.Now;
+            if (GameTickLast == -1)
+            {
+                GameTickLast = GameTickDt.Ticks;
+                GameTickLastLog = GameTickDt.Ticks;
+                return;
+            }
+            long tickInterval = GameTickDt.Ticks - GameTickLast;
+            GameTickLast = GameTickDt.Ticks;
+            if (0 == GameTickData.AvgCnt) GameTickData.LogTick = tickInterval;
+            GameTickData.Avg += tickInterval;
+            GameTickData.AvgCnt++;
+            if (tickInterval > GameTickData.Max) GameTickData.Max = tickInterval;
+            if (tickInterval < GameTickData.Min) GameTickData.Min = tickInterval;
+            if (GameTickDt.Ticks - GameTickLastLog >= PERFORMANCE_LOG_INTERVAL)
+            {
+                GameTickLastLog = GameTickLast;
+                CLog.Write("#PFMNC_GT;MIN;"+GameTickData.Min.ToString()+ ";MAX;"+GameTickData.Max.ToString()+";AVG;"+(GameTickData.Avg/GameTickData.AvgCnt).ToString()+ ";LOG;"+GameTickData.LogTick.ToString());
+                GameTickData.Max = 0;
+                GameTickData.Min = 1000 * PERFORMANCE_LOG_INTERVAL;
+                GameTickData.Avg = 0;
+                GameTickData.AvgCnt = 0;
+                GameTickData.LogTick = 0;
+            }
+        }
+    }
+
+    GameTick RealTickData = new GameTick { Max = 0, Min = 1000 * PERFORMANCE_LOG_INTERVAL, Avg = 0, AvgCnt = 0, LogTick = 0 };
+    private long RealTickLast = -1;
+    private long RealTickLastLog = -1;
+    private DateTime RealTickDt;
+
+    public void OnTickReal()
+    {
+        // NO DEBUG LOG HERE!!! HAVE TO BE ULTRA FAST FUNCTION!!!
+        if (CConfig.DEBUG_PERFORMANCE_LOG_ENABLE && CConfig.IsLoggingEnabled() && CLog.IsInitialized)
+        {
+            RealTickDt = DateTime.Now;
+            if (RealTickLast == -1)
+            {
+                RealTickLast = RealTickDt.Ticks;
+                RealTickLastLog = RealTickDt.Ticks;
+                return;
+            }
+            long tickInterval = RealTickDt.Ticks - RealTickLast;
+            RealTickLast = RealTickDt.Ticks;
+            if (0 == RealTickData.AvgCnt) RealTickData.LogTick = tickInterval;
+            RealTickData.Avg += tickInterval;
+            RealTickData.AvgCnt++;
+            if (tickInterval > RealTickData.Max) RealTickData.Max = tickInterval;
+            if (tickInterval < RealTickData.Min) RealTickData.Min = tickInterval;
+            if (RealTickDt.Ticks - RealTickLastLog >= PERFORMANCE_LOG_INTERVAL)
+            {
+                RealTickLastLog = RealTickLast;
+                CLog.Write("#PFMNC_RT;MIN;" + RealTickData.Min.ToString() + ";MAX;" + RealTickData.Max.ToString() + ";AVG;" + (RealTickData.Avg / RealTickData.AvgCnt).ToString() + ";LOG;" + RealTickData.LogTick.ToString());
+                RealTickData.Max = 0;
+                RealTickData.Min = 1000 * PERFORMANCE_LOG_INTERVAL;
+                RealTickData.Avg = 0;
+                RealTickData.AvgCnt = 0;
+                RealTickData.LogTick = 0;
+            }
+        }
+    }
+
     public void OnPlayerDisconnected(Player player, string diagnostic)
     {
         try
@@ -705,18 +789,6 @@ public class CMissionCommon
     ////                                           ////
     ///////////////////////////////////////////////////
     ///////////////////////////////////////////////////
-
-
-    public void OnTickGame()
-    {
-        // NO DEBUG LOG HERE!!! HAVE TO BE ULTRA FAST FUNCTION!!!
-    }
-
-
-    public void OnTickReal()
-    {
-        // NO DEBUG LOG HERE!!! HAVE TO BE ULTRA FAST FUNCTION!!!
-    }
 
     public void OnAircraftTookOff(int missionNumber, string shortName, AiAircraft aircraft)
     {

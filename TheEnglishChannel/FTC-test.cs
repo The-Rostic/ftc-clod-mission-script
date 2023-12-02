@@ -21,6 +21,9 @@ public class Mission : AMission
     public const bool DEBUG_MESSAGES = true;
     public CMissionCommon missionCommon = null;
 
+    /////////////////////////////////////
+    // write mission custom code below
+
     public void StartAIhunters()
     {
         GamePlay.gpPostMissionLoad(Path.GetDirectoryName(this.sPathMyself) + @"\bob-mis-000-sub-bf109.mis");
@@ -30,6 +33,9 @@ public class Mission : AMission
             StartAIhunters();
         });
     }
+
+    // write mission custom code above
+    /////////////////////////////////////
 
     public override void OnBattleInit()
     {
@@ -70,6 +76,34 @@ public class Mission : AMission
     {
         base.OnBattleStoped();
         missionCommon.OnBattleStoped();
+        /////////////////////////////////////
+        // write mission custom code below
+
+        // ...
+
+        // write mission custom code above
+        /////////////////////////////////////
+    }
+
+    //left event OnTickGame() commented until to be used
+    public override void OnTickGame()
+    {
+        base.OnTickGame();
+        missionCommon.OnTickGame();
+        /////////////////////////////////////
+        // write mission custom code below
+
+        // ...
+
+        // write mission custom code above
+        /////////////////////////////////////
+    }
+
+    //left event OnTickReal() commented until to be used
+    public override void OnTickReal()
+    {
+        base.OnTickReal();
+        missionCommon.OnTickReal();
         /////////////////////////////////////
         // write mission custom code below
 
@@ -138,34 +172,6 @@ public class Mission : AMission
         // write mission custom code above
         /////////////////////////////////////
     }
-
-    // left event OnTickGame() commented until to be used
-    //public override void OnTickGame()
-    //{
-    //    base.OnTickGame();
-    //    missionCommon.OnTickGame();
-    //    /////////////////////////////////////
-    //    // write mission custom code below
-    //
-    //    // ...
-    //
-    //    // write mission custom code above
-    //    /////////////////////////////////////
-    //}
-
-    // left event OnTickReal() commented until to be used
-    //public override void OnTickReal()
-    //{
-    //    base.OnTickReal();
-    //    missionCommon.OnTickReal();
-    //    /////////////////////////////////////
-    //    // write mission custom code below
-    //
-    //    // ...
-    //
-    //    // write mission custom code above
-    //    /////////////////////////////////////
-    //}
 
     public override void OnActorCreated(int missionNumber, string shortName, AiActor actor)
     {

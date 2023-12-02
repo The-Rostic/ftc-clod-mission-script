@@ -2,8 +2,11 @@ using System;
 
 public static class CConfig : Object
 {
-	public const bool DEBUG_LOCAL_LOG_ENABLE = false;
-	public const bool DEBUG_SERVER_LOG_ENABLE = true;
+    public const bool DEBUG_LOCAL_LOG_ENABLE = false;
+    public const bool DEBUG_SERVER_LOG_ENABLE = true;
+
+    public const bool DEBUG_PERFORMANCE_LOG_ENABLE = true;
+    static public bool IsLoggingEnabled() { return (DEBUG_LOCAL_LOG_ENABLE || DEBUG_SERVER_LOG_ENABLE); }
 
     //////////////////////////////////////////////////////////////////////////
     //
