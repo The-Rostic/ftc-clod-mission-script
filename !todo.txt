@@ -1,1 +1,1 @@
-- Add performance analyzing log in OnTick() event. Calculate tick intervals: avg, min, max, internal tick event functions time (log, radar).
+- Add threead with socket and protocol that provides capability to send data by client request about all airgroups and other mission data.
