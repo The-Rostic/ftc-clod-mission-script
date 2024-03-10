@@ -15,6 +15,7 @@ using maddox.GP; //-------------------
 //$include .\modules\CConfig.cs
 //$include .\modules\CKillDisusedPlanes.cs
 //$include .\modules\CLog.cs
+//$include .\modules\CNetworkComms.cs
 
 public class Mission : AMission
 {
@@ -40,6 +41,7 @@ public class Mission : AMission
     public override void OnBattleInit()
     {
         base.OnBattleInit();
+        //CLog.Init(this); // <-- !! DO NOT UNCOMMENT !! A lof of OnActorCreated() events genereted in between OnBattleInit() and OnBattleStarted()
         missionCommon = new CMissionCommon(this);
         missionCommon.OnBattleInit();
         /////////////////////////////////////
@@ -152,13 +154,13 @@ public class Mission : AMission
         /////////////////////////////////////
     }
 
-    //////////////////////////////////////////////////////////////////////////////////////////////
-    //////////////////////////////////////////////////////////////////////////////////////////////
-    ////                                                                                      ////
-    //// Not used events in CMissionCommon logic... can be commented for better performance.  ////
-    ////                                                                                      ////
-    //////////////////////////////////////////////////////////////////////////////////////////////
-    //////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    ////                                                                                            ////
+    //// Not used events below in CMissionCommon logic... can be commented for better performance.  ////
+    ////                                                                                            ////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
 
     public override void OnTrigger(int missionNumber, string shortName, bool active)
     {

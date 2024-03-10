@@ -1,21 +1,23 @@
 ﻿using System.Text;
 using System;
 using System.Collections;
-using maddox.game;
-using maddox.game.world;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Threading;
 using System.Diagnostics;
+using System.IO;
 using part;
-using maddox.GP; //-------------------
+using maddox.GP;
+using maddox.game;
+using maddox.game.world;
+using maddox.game.play;//--- last line is -- using maddox.game.play;
 
 public class CMissionCommon
 {
     private const bool DEBUG_MESSAGES = true;
 
-    public CKillDisusedPlanes m_KillDisusedPlanes = null;
-
+    private CKillDisusedPlanes m_KillDisusedPlanes = null;
+    private CNetworkComms m_NetworkComms = null;
     private Mission BaseMission = null; 
 
     public CMissionCommon(Mission mission)
@@ -32,12 +34,15 @@ public class CMissionCommon
     {
         if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("OnBattleStarted");
         m_KillDisusedPlanes = new CKillDisusedPlanes(BaseMission);
+        PrepareMissionMapInfo();
         PrepareAirports();
+        m_NetworkComms = new CNetworkComms(BaseMission);
     }
 
     public void OnBattleStoped()
     {
         if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("OnBattleStoped");
+        m_NetworkComms.OnBattleStoped();
         CLog.Close();
     }
 
@@ -378,6 +383,58 @@ public class CMissionCommon
     //  Custom functions  //
     //                    //
     ////////////////////////
+
+    public class CBattleArea
+    {
+        public int x, y, w, h, sector_length; // all in meters
+        
+        public void Reset()
+        {
+            x = y = w = h = sector_length = 0;
+        }
+    }
+    public class CMissionMapInfo
+    {
+        public string Name = "";
+        public CBattleArea BattleArea = new CBattleArea(); 
+    }
+
+    CMissionMapInfo missionMapInfo = new CMissionMapInfo();
+    private void PrepareMissionMapInfo()
+    {
+        string msMyFolder = Path.GetDirectoryName(BaseMission.sPathMyself);
+        if (DEBUG_MESSAGES && CLog.IsInitialized) { CLog.Write("Mission file path: " + msMyFolder); }
+        if (DEBUG_MESSAGES && CLog.IsInitialized) { CLog.Write("Mission file name: " + BaseMission.MissionFileName); }
+        ISectionFile sf = BaseMission.GamePlay.gpLoadSectionFile(msMyFolder + "\\" + BaseMission.MissionFileName);
+        // Get map name
+        missionMapInfo.Name = sf.get("MAIN", "MAP");
+        if (DEBUG_MESSAGES && CLog.IsInitialized) { CLog.Write("Map name: " + missionMapInfo.Name); }
+        // get battle area information (map grids)
+        string battleArea = sf.get("MAIN", "BattleArea");
+        if (DEBUG_MESSAGES && CLog.IsInitialized) { CLog.Write("Battle area: " + battleArea); }
+        string[] nums = battleArea.Split(new char[] {' '});
+        bool IsBattleAreaParsed = true;
+        if (nums.Length >= 5) 
+        {
+            IsBattleAreaParsed = Int32.TryParse(nums[0], out missionMapInfo.BattleArea.x);
+            if (IsBattleAreaParsed) IsBattleAreaParsed = Int32.TryParse(nums[1], out missionMapInfo.BattleArea.y);
+            if (IsBattleAreaParsed) IsBattleAreaParsed = Int32.TryParse(nums[2], out missionMapInfo.BattleArea.w);
+            if (IsBattleAreaParsed) IsBattleAreaParsed = Int32.TryParse(nums[3], out missionMapInfo.BattleArea.h);
+            if (IsBattleAreaParsed) IsBattleAreaParsed = Int32.TryParse(nums[4], out missionMapInfo.BattleArea.sector_length);
+        }
+        if (!IsBattleAreaParsed)
+        {
+            missionMapInfo.BattleArea.Reset();
+        }
+        if (DEBUG_MESSAGES && CLog.IsInitialized) 
+        { 
+            CLog.Write("Battle area PARSED: x=" + missionMapInfo.BattleArea.x.ToString() 
+            + ", y=" + missionMapInfo.BattleArea.y.ToString()
+            + ", w=" + missionMapInfo.BattleArea.w.ToString()
+            + ", h=" + missionMapInfo.BattleArea.h.ToString()
+            + ", sl=" + missionMapInfo.BattleArea.sector_length.ToString()); 
+        }
+    }
 
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

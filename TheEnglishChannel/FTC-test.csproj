@@ -85,6 +85,7 @@
     <Compile Include="modules\CKillDisusedPlanes.cs" />
     <Compile Include="modules\CLog.cs" />
     <Compile Include="modules\CMissionCommon.cs" />
+    <Compile Include="modules\CNetworkComms.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="FTC-test.cs" />

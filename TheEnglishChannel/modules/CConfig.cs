@@ -2,11 +2,19 @@ using System;
 
 public static class CConfig : Object
 {
+    // General logging defines
     public const bool DEBUG_LOCAL_LOG_ENABLE = false;
     public const bool DEBUG_SERVER_LOG_ENABLE = true;
-
-    public const bool DEBUG_PERFORMANCE_LOG_ENABLE = true;
     static public bool IsLoggingEnabled() { return (DEBUG_LOCAL_LOG_ENABLE || DEBUG_SERVER_LOG_ENABLE); }
+
+    // Logging features
+    public const bool DEBUG_PERFORMANCE_LOG_ENABLE = false;
+
+    //
+    // Network communicatios
+    //
+    public const string SERVER_IP = "127.0.0.1";
+    public const int SERVER_PORT = 37000;
 
     //////////////////////////////////////////////////////////////////////////
     //
