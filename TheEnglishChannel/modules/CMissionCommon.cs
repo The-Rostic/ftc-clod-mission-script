@@ -36,13 +36,13 @@ public class CMissionCommon
         m_KillDisusedPlanes = new CKillDisusedPlanes(BaseMission);
         PrepareMissionMapInfo();
         PrepareAirports();
-        m_NetworkComms = new CNetworkComms(BaseMission);
+        if (CConfig.NETWORKING_ENABLE) m_NetworkComms = new CNetworkComms(BaseMission, this);
     }
 
     public void OnBattleStoped()
     {
         if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("OnBattleStoped");
-        m_NetworkComms.OnBattleStoped();
+        if (CConfig.NETWORKING_ENABLE) m_NetworkComms.OnBattleStoped();
         CLog.Close();
     }
 
@@ -55,7 +55,8 @@ public class CMissionCommon
         public long LogTick;
     }
 
-    private const long TICKS_IN_SECOND = 10000000;
+    public const long TICKS_IN_SECOND = 10000000;
+    public const long TICKS_IN_MILISECOND = 10000;
     private const long PERFORMANCE_LOG_INTERVAL = TICKS_IN_SECOND;
     GameTick GameTickData = new GameTick { Max = 0, Min = 1000* PERFORMANCE_LOG_INTERVAL, Avg = 0, AvgCnt = 0, LogTick = 0 };
     private long GameTickLast = -1; // 1 tick is equal to 100 nano secods. 10000000 ticks in second
@@ -64,7 +65,9 @@ public class CMissionCommon
     public void OnTickGame()
     {
         // NO DEBUG LOG HERE!!! HAVE TO BE ULTRA FAST FUNCTION!!!
-        if (CConfig.DEBUG_PERFORMANCE_LOG_ENABLE && CConfig.IsLoggingEnabled() && CLog.IsInitialized)
+        //
+        // But performance debug logging here when need. DO NOT FORGET TO DISABLE!
+        if (CConfig.DEBUG_PERFORMANCE_LOG_ENABLE && CLog.IsInitialized)
         {
             GameTickDt = DateTime.Now;
             if (GameTickLast == -1)
@@ -91,6 +94,8 @@ public class CMissionCommon
                 GameTickData.LogTick = 0;
             }
         }
+        // Radar and other networking stuff poller
+        if (CConfig.NETWORKING_ENABLE) m_NetworkComms.MissionScriptPoll();
     }
 
     GameTick RealTickData = new GameTick { Max = 0, Min = 1000 * PERFORMANCE_LOG_INTERVAL, Avg = 0, AvgCnt = 0, LogTick = 0 };
@@ -101,7 +106,9 @@ public class CMissionCommon
     public void OnTickReal()
     {
         // NO DEBUG LOG HERE!!! HAVE TO BE ULTRA FAST FUNCTION!!!
-        if (CConfig.DEBUG_PERFORMANCE_LOG_ENABLE && CConfig.IsLoggingEnabled() && CLog.IsInitialized)
+        //
+        // But performance debug logging here when need. DO NOT FORGET TO DISABLE!
+        if (CConfig.DEBUG_PERFORMANCE_LOG_ENABLE && CLog.IsInitialized)
         {
             RealTickDt = DateTime.Now;
             if (RealTickLast == -1)
@@ -386,11 +393,11 @@ public class CMissionCommon
 
     public class CBattleArea
     {
-        public int x, y, w, h, sector_length; // all in meters
+        public int x, y, w, h, sector_size; // all in meters
         
         public void Reset()
         {
-            x = y = w = h = sector_length = 0;
+            x = y = w = h = sector_size = 0;
         }
     }
     public class CMissionMapInfo
@@ -399,7 +406,7 @@ public class CMissionCommon
         public CBattleArea BattleArea = new CBattleArea(); 
     }
 
-    CMissionMapInfo missionMapInfo = new CMissionMapInfo();
+    public CMissionMapInfo missionMapInfo = new CMissionMapInfo();
     private void PrepareMissionMapInfo()
     {
         string msMyFolder = Path.GetDirectoryName(BaseMission.sPathMyself);
@@ -420,7 +427,7 @@ public class CMissionCommon
             if (IsBattleAreaParsed) IsBattleAreaParsed = Int32.TryParse(nums[1], out missionMapInfo.BattleArea.y);
             if (IsBattleAreaParsed) IsBattleAreaParsed = Int32.TryParse(nums[2], out missionMapInfo.BattleArea.w);
             if (IsBattleAreaParsed) IsBattleAreaParsed = Int32.TryParse(nums[3], out missionMapInfo.BattleArea.h);
-            if (IsBattleAreaParsed) IsBattleAreaParsed = Int32.TryParse(nums[4], out missionMapInfo.BattleArea.sector_length);
+            if (IsBattleAreaParsed) IsBattleAreaParsed = Int32.TryParse(nums[4], out missionMapInfo.BattleArea.sector_size);
         }
         if (!IsBattleAreaParsed)
         {
@@ -432,7 +439,7 @@ public class CMissionCommon
             + ", y=" + missionMapInfo.BattleArea.y.ToString()
             + ", w=" + missionMapInfo.BattleArea.w.ToString()
             + ", h=" + missionMapInfo.BattleArea.h.ToString()
-            + ", sl=" + missionMapInfo.BattleArea.sector_length.ToString()); 
+            + ", ssz=" + missionMapInfo.BattleArea.sector_size.ToString()); 
         }
     }
 

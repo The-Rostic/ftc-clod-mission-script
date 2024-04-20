@@ -41,7 +41,7 @@ public class Mission : AMission
     public override void OnBattleInit()
     {
         base.OnBattleInit();
-        //CLog.Init(this); // <-- !! DO NOT UNCOMMENT !! A lof of OnActorCreated() events genereted in between OnBattleInit() and OnBattleStarted()
+        // if(CConfig.IsLoggingEnabled()) CLog.Init(this); // <-- !! DO NOT UNCOMMENT !! A lof of OnActorCreated() events genereted in between OnBattleInit() and OnBattleStarted()
         missionCommon = new CMissionCommon(this);
         missionCommon.OnBattleInit();
         /////////////////////////////////////
@@ -56,7 +56,7 @@ public class Mission : AMission
     public override void OnBattleStarted()
     {
         base.OnBattleStarted();
-        CLog.Init(this);
+        if(CConfig.IsLoggingEnabled()) CLog.Init(this);
         missionCommon.OnBattleStarted();
 
         /////////////////////////////////////

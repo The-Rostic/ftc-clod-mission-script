@@ -13,8 +13,11 @@ public static class CConfig : Object
     //
     // Network communicatios
     //
+    public const bool NETWORKING_ENABLE = true;
     public const string SERVER_IP = "127.0.0.1";
     public const int SERVER_PORT = 37000;
+    // Radar feature
+    public const int RADAR_DATA_UPDATE_INTERVAL_MS = 1000;
 
     //////////////////////////////////////////////////////////////////////////
     //
