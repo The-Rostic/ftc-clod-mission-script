@@ -731,6 +731,17 @@ public class CMissionCommon
             AiWayPoint[] aiWayPoints = aircraft.Group().GetWay();
             aiWayPoints[1].P.y = aiWayPoints[1].P.y + 5000;
             aircraft.Group().SetWay(aiWayPoints);
+            // also remove all wingmans spawned with him
+            AiActor[] actors = aircraft.Group().GetItems();
+            foreach (AiActor actor in actors)
+            {
+                CLog.Write("Destroy "+actor.ToString());
+                AiAircraft aiAircraft = (AiAircraft) actor;
+                if (aiAircraft.Player(0) == null)
+                {
+                    aiAircraft.Destroy();
+                }
+            }
             return true;
         }
         return false;
