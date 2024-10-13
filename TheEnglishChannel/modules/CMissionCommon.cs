@@ -733,13 +733,21 @@ public class CMissionCommon
             aircraft.Group().SetWay(aiWayPoints);
             // also remove all wingmans spawned with him
             AiActor[] actors = aircraft.Group().GetItems();
-            foreach (AiActor actor in actors)
+            CLog.Write("Destroy all AI wingmen in group.");
+            for (int i = 0; i < actors.Length; i++)
             {
-                CLog.Write("Destroy "+actor.ToString());
-                AiAircraft aiAircraft = (AiAircraft) actor;
-                if (aiAircraft.Player(0) == null)
+                if (actors[i] is AiAircraft)
                 {
-                    aiAircraft.Destroy();
+                    AiAircraft aiAircraft = (AiAircraft)actors[i];
+                    if (aiAircraft.Player(0) == null)
+                    {
+                        if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("AI aircraft actor[" + i.ToString() + "].Name=" + actors[i].Name() + " will be destroyed!");
+                        aiAircraft.Destroy();
+                    }
+                }
+                else
+                {
+                    if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Not aircraft actor[" + i.ToString() + "].Name=" + actors[i].Name());
                 }
             }
             return true;
