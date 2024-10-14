@@ -174,7 +174,7 @@ public class CMissionCommon
             {
                 // Player spawned aicraft waypoints update
                 AiAircraft aircraft = (actor as AiAircraft);
-                bool isPlayerJustSpawnedAtSpawnArea = AiAircraftTryUpdatePlayerSpawnDefaultWay(aircraft);
+                bool isPlayerJustSpawnedAtSpawnArea = AiAircraftUpdatePlayerSpawnedGroup(aircraft);
 
                 if (CConfig.DISABLE_PILOT_TO_LEAVE_MOVING_AIRCRAFT)
                 {
@@ -723,14 +723,17 @@ public class CMissionCommon
         return false;
     }
 
-    public bool AiAircraftTryUpdatePlayerSpawnDefaultWay(AiAircraft aircraft)
+    public bool AiAircraftUpdatePlayerSpawnedGroup(AiAircraft aircraft)
     {
         if (IsAircraftPlayerSpawnedAtSpawnArea(aircraft))
         {
             if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Looks like player spawned in spawn area! Reset default waypoints to avoid useless GC orders to land right after takeoff...");
-            AiWayPoint[] aiWayPoints = aircraft.Group().GetWay();
-            aiWayPoints[1].P.y = aiWayPoints[1].P.y + 5000;
-            aircraft.Group().SetWay(aiWayPoints);
+            // APPEARED TO BE USELESS!!! GC is silent on Dedicated server!!!
+            // Reset default waypoints to avoid useless GC orders to land right after takeoff...
+            //AiWayPoint[] aiWayPoints = aircraft.Group().GetWay();
+            //aiWayPoints[1].P.y = aiWayPoints[1].P.y + 5000;
+            //aircraft.Group().SetWay(aiWayPoints);
+
             // also remove all wingmans spawned with him
             AiActor[] actors = aircraft.Group().GetItems();
             CLog.Write("Destroy all AI wingmen in group.");
