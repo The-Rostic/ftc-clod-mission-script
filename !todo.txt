@@ -1,1 +1,3 @@
 - Add threead with socket and protocol that provides capability to send data by client request about all airgroups and other mission data.
+- Add neutral airfields near spawn areas to list of friendly airfields for quick despawn script to work there too.
+- Add refuel/rearm feature through TAB-4 menu. Configurable to work in radius of friendly airfields and spawnareas or by list of coorditanes where decorations of servicable area will be created dynamically by script.
