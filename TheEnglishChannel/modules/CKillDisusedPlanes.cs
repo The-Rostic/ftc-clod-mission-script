@@ -34,7 +34,7 @@ public class CKillDisusedPlanes {
     private const bool DEBUG_MESSAGES = true;
 
     // number of seconds to wait between damage and destroy of aircraft on friendly airfield
-    protected const int TIMEOUT_NOTAIRBORNE = 1;
+    protected const int TIMEOUT_NOTAIRBORNE = 0; // NEVER CHANGE! IF NOT EQUAL TO ZERO AIRCRAFT WITH BOMBS WILL EXPLODE EVERYTHING AROUND!
 
     // number of seconds to wait between damage and destroy of aircraft on friendly airfield
     protected const int TIMEOUT_ATOPERATIONALAIRBASE = 600;
@@ -60,9 +60,11 @@ public class CKillDisusedPlanes {
     /// <param name="iPlaceIndex"></param>
     public void OnPlaceLeave(Player CurPlayer, AiActor ActorMain, int iPlaceIndex)
     {
-        m_Mission.Timeout(1, () => {
-            TryDamagePlane(ActorMain, CurPlayer); 
-        });
+        // NO DELAYS HERE! Otherwise aircraft with bombs on the ground will blow up all around!
+        TryDamagePlane(ActorMain, CurPlayer);
+        //m_Mission.Timeout(1, () => {
+        //    TryDamagePlane(ActorMain, CurPlayer); 
+        //});
     }
     /// <summary>
     /// Make an AI controlled aircraft unusable if have to
@@ -202,10 +204,17 @@ public class CKillDisusedPlanes {
         if (iDestroyTimeout > -1)
         {
             if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Aircraft " + Aircraft.Name() + " will be destroyed in " + iDestroyTimeout.ToString() + " seconds.");
-            m_Mission.Timeout(iDestroyTimeout, () =>
+            if (iDestroyTimeout == 0)
             {
                 DestroyPlane(Aircraft);
-            });
+            }
+            else
+            {
+                m_Mission.Timeout(iDestroyTimeout, () =>
+                {
+                    DestroyPlane(Aircraft);
+                });
+            }
         }
         else
         {
