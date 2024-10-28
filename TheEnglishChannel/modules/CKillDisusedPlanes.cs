@@ -61,10 +61,9 @@ public class CKillDisusedPlanes {
     public void OnPlaceLeave(Player CurPlayer, AiActor ActorMain, int iPlaceIndex)
     {
         // NO DELAYS HERE! Otherwise aircraft with bombs on the ground will blow up all around!
-        TryDamagePlane(ActorMain, CurPlayer);
-        //m_Mission.Timeout(1, () => {
-        //    TryDamagePlane(ActorMain, CurPlayer); 
-        //});
+        m_Mission.Timeout(0, () => {
+            TryDamagePlane(ActorMain, CurPlayer); 
+        });
     }
     /// <summary>
     /// Make an AI controlled aircraft unusable if have to
@@ -116,7 +115,7 @@ public class CKillDisusedPlanes {
         if (!CConfig.REALISTIC_AIRCRAFT_DESPAWN_TIMEOUT)
         {
             if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Aircraft " + Aircraft.Name() + " will be destroyed immediately.");
-            m_Mission.Timeout(1, () =>
+            m_Mission.Timeout(0, () =>
             {
                 DestroyPlane(Aircraft);
             });
@@ -204,17 +203,10 @@ public class CKillDisusedPlanes {
         if (iDestroyTimeout > -1)
         {
             if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Aircraft " + Aircraft.Name() + " will be destroyed in " + iDestroyTimeout.ToString() + " seconds.");
-            if (iDestroyTimeout == 0)
+            m_Mission.Timeout(iDestroyTimeout, () =>
             {
                 DestroyPlane(Aircraft);
-            }
-            else
-            {
-                m_Mission.Timeout(iDestroyTimeout, () =>
-                {
-                    DestroyPlane(Aircraft);
-                });
-            }
+            });
         }
         else
         {

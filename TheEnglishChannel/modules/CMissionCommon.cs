@@ -653,7 +653,7 @@ public class CMissionCommon
                     AiAirport airportFromList = NeutralAirportsByArmies[armyIdx].aiAirports[airportIdx];
                     Point3d airportFromListPos = airportFromList.Pos();
                     double distanceToAirportFromList = airportFromListPos.distanceLinf(ref aircraftPos);
-                    if (distanceToAirportFromList < airportFromList.CoverageR())
+                    if (distanceToAirportFromList < (airportFromList.CoverageR() + 1000.0))
                     {
                         int airportFromListArmy = NeutralAirportsByArmies[armyIdx].Army;
                         if (airportFromListArmy == aircraftArmy)
