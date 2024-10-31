@@ -115,8 +115,16 @@ public static class CLog
         if (!initialized) return;
         if ((CConfig.DEBUG_SERVER_LOG_ENABLE) || (m_LogFile != null))
         {
+            // Map time
+            double dMisTime = m_Mission.GamePlay.gpTimeofDay(); // time of day in hours as double value
+            int mt_hours = (int)dMisTime;
+            dMisTime = dMisTime - mt_hours;
+            int mt_minutes = (int)(dMisTime * 60);
+            int mt_seconds = (int)(dMisTime * 3600) - mt_minutes * 60;
+            string missionTime = mt_hours.ToString() + ":" + mt_minutes.ToString().PadLeft(2, '0') + ":" + mt_seconds.ToString().PadLeft(2, '0');
+            // Real time
             DateTime dt = DateTime.Now;
-            string logmsg = dt.ToString("H:mm:ss,") + dt.Millisecond.ToString("000") + " : " + message;
+            string logmsg = dt.ToString("H:mm:ss,") + dt.Millisecond.ToString("000") + "(MT+" + missionTime + ") : " + message;
 
             if (m_LogFile != null)
             {
