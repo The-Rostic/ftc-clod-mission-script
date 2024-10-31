@@ -466,13 +466,13 @@ public class CMissionCommon
 
     public void PrepareAirports()
     {
-        if (BaseMission.GamePlay.gpAirports().Length == 0)
+        if ((BaseMission.GamePlay.gpAirports().Length == 0) || (BaseMission.GamePlay.gpArmies().Length == 0))
         {
             return;
         }
 
         // Get list of all airfields on the map
-        AiAirport[] missionAirportsSortedByArmy = new AiAirport[BaseMission.GamePlay.gpAirports().Length ];
+        AiAirport[] missionAirportsSortedByArmy = new AiAirport[BaseMission.GamePlay.gpAirports().Length];
         BaseMission.GamePlay.gpAirports().CopyTo(missionAirportsSortedByArmy, 0);
 
         AiAirport aiAirport;
@@ -489,7 +489,6 @@ public class CMissionCommon
                 }
             }
         }
-
         //
         // debug printing
         //
@@ -525,14 +524,12 @@ public class CMissionCommon
                 missionAirportIndexesByArmy[idx].Army = missionAirportsSortedByArmy[i].Army();
                 missionAirportIndexesByArmy[idx].FirstIdx = i;
                 missionAirportIndexesByArmy[idx].LastIdx = i;
-
             }
         }
-
         //
         // debug printing
         //
-        if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("---Indexes for different armies airfields for fast searching done.");
+        if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("---Indexes for different armies airfields for fast searching to be done.");
         for (int i = 0; i < missionAirportIndexesByArmy.Count; i++)
         {
             if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Index=" + i.ToString()
@@ -541,37 +538,137 @@ public class CMissionCommon
                 + " Last=" + missionAirportIndexesByArmy[i].LastIdx.ToString());
         }
 
-        // create array of neautral airports lists by armies
-        if (missionAirportIndexesByArmy.Count > 0)
+        //
+        // Here let's do same thing for SpawnAreas.
+        //
+        // Get list of all SpawnAreas on the map
+
+        AiBirthPlace[] missionBirthplacesSortedByArmy = new AiBirthPlace[BaseMission.GamePlay.gpBirthPlaces().Length];
+        BaseMission.GamePlay.gpBirthPlaces().CopyTo(missionBirthplacesSortedByArmy, 0);
+
+        AiBirthPlace aiBirthPlace;
+        // Sort by army
+        for (int i = 0; i < missionBirthplacesSortedByArmy.Length - 1; i++)
         {
-            NeutralAirportsByArmies = new CNeutralAirportsByArmies[missionAirportIndexesByArmy.Count];
-            // fill army values
-            for (int armyIdx = 0; armyIdx < missionAirportIndexesByArmy.Count; armyIdx++)
+            for (int j = i + 1; j < missionBirthplacesSortedByArmy.Length; j++)
             {
-                NeutralAirportsByArmies[armyIdx] = new CNeutralAirportsByArmies();
-                NeutralAirportsByArmies[armyIdx].Army = missionAirportIndexesByArmy[armyIdx].Army;
-            }
-
-            //
-            // debug printing
-            //
-            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("---Army values filled.");
-
-            // fill airfields NeutralAirportsByArmies from list of all mission neutral airports
-            for (int missionNeutralAirportIdx = 0; missionNeutralAirportIdx <= missionAirportIndexesByArmy[0].LastIdx; missionNeutralAirportIdx++)
-            {
-                AiAirport missionNeutralAirport = missionAirportsSortedByArmy[missionNeutralAirportIdx];
-                Point3d missionNeutralAirportPos = missionNeutralAirport.Pos();
-                bool nonNeutralAirportFound = false;
-                for (int armyIdx = 1; armyIdx < missionAirportIndexesByArmy.Count; armyIdx++)
+                if (missionBirthplacesSortedByArmy[i].Army() > missionBirthplacesSortedByArmy[j].Army())
                 {
-                    for (int nonNeutralAirportIdx = missionAirportIndexesByArmy[armyIdx].FirstIdx; nonNeutralAirportIdx <= missionAirportIndexesByArmy[armyIdx].LastIdx; nonNeutralAirportIdx++)
+                    aiBirthPlace = missionBirthplacesSortedByArmy[i];
+                    missionBirthplacesSortedByArmy[i] = missionBirthplacesSortedByArmy[j];
+                    missionBirthplacesSortedByArmy[j] = aiBirthPlace;
+                }
+            }
+        }
+        //
+        // debug printing
+        //
+        if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("---Sorted list of birthplaces:");
+        for (int i = 0; i < missionBirthplacesSortedByArmy.Length; i++)
+        {
+            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write(missionBirthplacesSortedByArmy[i].Name() + " army=" + missionBirthplacesSortedByArmy[i].Army().ToString());
+        }
+        // It have to be at least one BirthPlace in this mission
+        List<CAirportIndexes> missionBirthPlacesIndexesByArmy = new List<CAirportIndexes>();
+        missionBirthPlacesIndexesByArmy.Add(new CAirportIndexes());
+        missionBirthPlacesIndexesByArmy[0].Army = missionBirthplacesSortedByArmy[0].Army();
+        missionBirthPlacesIndexesByArmy[0].FirstIdx = 0;
+        missionBirthPlacesIndexesByArmy[0].LastIdx = 0;
+        idx = 0;
+        // Lets prepare indexes for different armies BirthPlaces for fast searching.
+        for (int i = 1; i < missionBirthplacesSortedByArmy.Length; i++)
+        {
+            if (missionBirthplacesSortedByArmy[i].Army() == missionBirthPlacesIndexesByArmy[idx].Army)
+            {
+                missionBirthPlacesIndexesByArmy[idx].LastIdx = i;
+            }
+            else
+            {
+                idx++;
+                missionBirthPlacesIndexesByArmy.Add(new CAirportIndexes());
+                missionBirthPlacesIndexesByArmy[idx].Army = missionBirthplacesSortedByArmy[i].Army();
+                missionBirthPlacesIndexesByArmy[idx].FirstIdx = i;
+                missionBirthPlacesIndexesByArmy[idx].LastIdx = i;
+            }
+        }
+        //
+        // debug printing
+        //
+        if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("---Indexes for different armies BirthPlaces for fast searching to be done.");
+        for (int i = 0; i < missionBirthPlacesIndexesByArmy.Count; i++)
+        {
+            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Index=" + i.ToString()
+                + " Army=" + missionBirthPlacesIndexesByArmy[i].Army.ToString()
+                + " First=" + missionBirthPlacesIndexesByArmy[i].FirstIdx.ToString()
+                + " Last=" + missionBirthPlacesIndexesByArmy[i].LastIdx.ToString());
+        }
+
+        //
+        // Create array of neautral airports lists by armies
+        //
+        int missionArmiesCount = BaseMission.GamePlay.gpArmies().Length + 1;// +1 for Neutral Army with index 0.
+        NeutralAirportsByArmies = new CNeutralAirportsByArmies[missionArmiesCount];
+        // fill army values
+        NeutralAirportsByArmies[0] = new CNeutralAirportsByArmies();
+        NeutralAirportsByArmies[0].Army = 0; // this one is always neutral armie with index 0.
+        for (int armyIdx = 1; armyIdx < missionArmiesCount; armyIdx++)
+        {
+            NeutralAirportsByArmies[armyIdx] = new CNeutralAirportsByArmies();
+            NeutralAirportsByArmies[armyIdx].Army = BaseMission.GamePlay.gpArmies()[armyIdx - 1];// remember we added +1 to gpArmies().Length for missionArmiesCount
+        }
+        //
+        // debug printing
+        //
+        if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("---Army values filled.");
+
+        // fill airfields NeutralAirportsByArmies from list of all mission neutral airports
+        for (int missionNeutralAirportIdx = 0; missionNeutralAirportIdx <= missionAirportIndexesByArmy[0].LastIdx; missionNeutralAirportIdx++)
+        {
+            AiAirport missionNeutralAirport = missionAirportsSortedByArmy[missionNeutralAirportIdx];
+            Point3d missionNeutralAirportPos = missionNeutralAirport.Pos();
+            bool nonNeutralAirportFound = false;
+            // search in non neutral airports indexes lists
+            for (int armyIdx = 1; armyIdx < missionAirportIndexesByArmy.Count; armyIdx++)
+            {
+                for (int nonNeutralAirportIdx = missionAirportIndexesByArmy[armyIdx].FirstIdx; nonNeutralAirportIdx <= missionAirportIndexesByArmy[armyIdx].LastIdx; nonNeutralAirportIdx++)
+                {
+                    AiAirport nonNeutralAirport = missionAirportsSortedByArmy[nonNeutralAirportIdx];
+                    Point3d nonNeutralAirportPos = nonNeutralAirport.Pos();
+                    if (missionNeutralAirportPos.distanceLinf(ref nonNeutralAirportPos) < missionNeutralAirport.CoverageR())
                     {
-                        AiAirport nonNeutralAirport = missionAirportsSortedByArmy[nonNeutralAirportIdx];
-                        Point3d nonNeutralAirportPos = nonNeutralAirport.Pos();
-                        if (missionNeutralAirportPos.distanceLinf(ref nonNeutralAirportPos) < missionNeutralAirport.CoverageR())
+                        int nabaIdx;
+                        for (nabaIdx = 1; nabaIdx < NeutralAirportsByArmies.Length - 1; nabaIdx++)
                         {
-                            NeutralAirportsByArmies[armyIdx].aiAirports.Add(missionNeutralAirport);
+                            if (missionAirportIndexesByArmy[armyIdx].Army == NeutralAirportsByArmies[nabaIdx].Army)
+                                break;
+                        }
+                        NeutralAirportsByArmies[nabaIdx].aiAirports.Add(missionNeutralAirport);
+                        nonNeutralAirportFound = true;
+                        break;
+                    }
+                }
+                if (nonNeutralAirportFound)
+                    break;
+            }
+            // now search in birth places indexes lists
+            if (!nonNeutralAirportFound)
+            {
+                // remember, birth places can't be neutral
+                for (int armyIdx = 0; armyIdx < missionBirthPlacesIndexesByArmy.Count; armyIdx++)
+                {
+                    for (int nonNeutralBirthPlaceIdx = missionBirthPlacesIndexesByArmy[armyIdx].FirstIdx; nonNeutralBirthPlaceIdx <= missionBirthPlacesIndexesByArmy[armyIdx].LastIdx; nonNeutralBirthPlaceIdx++)
+                    {
+                        AiBirthPlace nonNeutralBirthPlace = missionBirthplacesSortedByArmy[nonNeutralBirthPlaceIdx];
+                        Point3d nonNeutralBirthPlacePos = nonNeutralBirthPlace.Pos();
+                        if (missionNeutralAirportPos.distanceLinf(ref nonNeutralBirthPlacePos) < missionNeutralAirport.CoverageR())
+                        {
+                            int nabaIdx;
+                            for (nabaIdx = 1; nabaIdx < NeutralAirportsByArmies.Length - 1; nabaIdx++)
+                            {
+                                if (missionBirthPlacesIndexesByArmy[armyIdx].Army == NeutralAirportsByArmies[nabaIdx].Army)
+                                    break;
+                            }
+                            NeutralAirportsByArmies[nabaIdx].aiAirports.Add(missionNeutralAirport);
                             nonNeutralAirportFound = true;
                             break;
                         }
@@ -579,27 +676,28 @@ public class CMissionCommon
                     if (nonNeutralAirportFound)
                         break;
                 }
-                if (!nonNeutralAirportFound)
-                {
-                    NeutralAirportsByArmies[0].aiAirports.Add(missionNeutralAirport);
-                }
             }
-
-            //
-            // debug printing
-            //
-            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Neutral airfields by army.");
-
-            for (int armyIdx = 0; armyIdx < NeutralAirportsByArmies.Length; armyIdx++)
+            // this airport is neutral
+            if (!nonNeutralAirportFound)
             {
-                if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("---List of airports for Army=" + NeutralAirportsByArmies[armyIdx].Army.ToString());
-                for (int airportIdx = 0; airportIdx < NeutralAirportsByArmies[armyIdx].aiAirports.Count; airportIdx++)
-                {
-                    if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write(NeutralAirportsByArmies[armyIdx].aiAirports[airportIdx].Name());
-                }
+                NeutralAirportsByArmies[0].aiAirports.Add(missionNeutralAirport);
+            }
+        }
+        //
+        // debug printing
+        //
+        if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Neutral airfields by army.");
+
+        for (int armyIdx = 0; armyIdx < NeutralAirportsByArmies.Length; armyIdx++)
+        {
+            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("---List of airports for Army=" + NeutralAirportsByArmies[armyIdx].Army.ToString());
+            for (int airportIdx = 0; airportIdx < NeutralAirportsByArmies[armyIdx].aiAirports.Count; airportIdx++)
+            {
+                if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write(NeutralAirportsByArmies[armyIdx].aiAirports[airportIdx].Name());
             }
         }
     }
+
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //
