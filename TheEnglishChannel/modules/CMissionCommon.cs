@@ -391,6 +391,65 @@ public class CMissionCommon
     //                    //
     ////////////////////////
 
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Simple self explanatory funtions
+    //
+    public AiAirGroup FindAiAirgroupByName(string aiAirgroupName)
+    {
+        try
+        {
+            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Started search of airgroup with name: " + aiAirgroupName);
+            for (int i = 0; i < BaseMission.GamePlay.gpArmies().Length; i++)
+            {
+                AiAirGroup[] grs = BaseMission.GamePlay.gpAirGroups(BaseMission.GamePlay.gpArmies()[i]);
+                if (grs != null)
+                {
+                    for (int j = 0; j < grs.Length; j++)
+                    {
+                        try
+                        {
+                            //if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write(grs[j].Name());
+                            if (grs[j].Name().Contains(aiAirgroupName))
+                            {
+                                if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Airgroup " + aiAirgroupName + " found!");
+                                return grs[j];
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Group idx=" + j.ToString() + " in army=" + BaseMission.GamePlay.gpArmies()[i].ToString() + " skipped due to exception.\n" + ex.ToString());
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write(ex.ToString());
+        }
+        if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Airgroup " + aiAirgroupName + " not found.");
+        return null;
+    }
+
+    public void StartEnginesForAiAirgroupByName(string aiAirgroupName)
+    {
+        AiAirGroup airgroup = FindAiAirgroupByName(aiAirgroupName);
+        if (airgroup != null)
+        {
+            try
+            {
+                airgroup.Idle = false;
+                if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Airgroup \"" + aiAirgroupName + "\" - engines started!");
+            }
+            catch (Exception ex)
+            {
+                if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Airgroup \"" + aiAirgroupName + "\" - failed to start engines!!! \n" + ex.ToString());
+            }
+        }
+    }
+
+
     public class CBattleArea
     {
         public int x, y, w, h, sector_size; // all in meters
