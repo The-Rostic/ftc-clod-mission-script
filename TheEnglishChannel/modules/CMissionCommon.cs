@@ -1268,14 +1268,15 @@ public class CMissionCommon
     {
         try
         {
-            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("OnBombExplosion title=" + title + " mass=" + mass.ToString()
-                + " pos.{X,Y,Z}={" + pos.x.ToString() + ", " + pos.y.ToString() + ", " + pos.z.ToString() + "}"
-                + " initiator is {" + ((initiator != null) ? (" Actor=" + ((initiator.Actor != null) ? initiator.Actor.Name() : "=null")
-                                                            + " Person=" + ((initiator.Person != null) ? initiator.Person.Name() : "=null")
-                                                            + " Player=" + ((initiator.Player != null) ? initiator.Player.Name() : "=null")
-                                                            + " Tool=" + ((initiator.Tool != null) ? initiator.Tool.Type.ToString() + "}" : "=null}"))
-                                                          : "=null}")
-                + " eventArgInt=" + eventArgInt.ToString());
+            //// COMENTED DUE TO A LOT OF EVENTS GENERATED... TOO MUCH FOR LOGGING
+            //if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("OnBombExplosion title=" + title + " mass=" + mass.ToString()
+            //    + " pos.{X,Y,Z}={" + pos.x.ToString() + ", " + pos.y.ToString() + ", " + pos.z.ToString() + "}"
+            //    + " initiator is {" + ((initiator != null) ? (" Actor=" + ((initiator.Actor != null) ? initiator.Actor.Name() : "=null")
+            //                                                + " Person=" + ((initiator.Person != null) ? initiator.Person.Name() : "=null")
+            //                                                + " Player=" + ((initiator.Player != null) ? initiator.Player.Name() : "=null")
+            //                                                + " Tool=" + ((initiator.Tool != null) ? initiator.Tool.Type.ToString() + "}" : "=null}"))
+            //                                              : "=null}")
+            //    + " eventArgInt=" + eventArgInt.ToString());
         }
         catch (Exception e)
         {
@@ -1287,14 +1288,15 @@ public class CMissionCommon
     {
         try
         {
-            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("OnBuildingKilled title=" + title
-                + " pos.{X,Y,Z}={" + pos.x.ToString() + ", " + pos.y.ToString() + ", " + pos.z.ToString() + "}"
-                + " initiator is {" + ((initiator != null) ? (" Actor=" + ((initiator.Actor != null) ? initiator.Actor.Name() : "=null")
-                                                            + " Person=" + ((initiator.Person != null) ? initiator.Person.Name() : "=null")
-                                                            + " Player=" + ((initiator.Player != null) ? initiator.Player.Name() : "=null")
-                                                            + " Tool=" + ((initiator.Tool != null) ? initiator.Tool.Type.ToString() + "}" : "=null}"))
-                                                          : "=null}")
-                + " eventArgInt=" + eventArgInt.ToString());
+            //// COMENTED DUE TO A LOT OF EVENTS GENERATED... TOO MUCH FOR LOGGING
+            //if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("OnBuildingKilled title=" + title
+            //    + " pos.{X,Y,Z}={" + pos.x.ToString() + ", " + pos.y.ToString() + ", " + pos.z.ToString() + "}"
+            //    + " initiator is {" + ((initiator != null) ? (" Actor=" + ((initiator.Actor != null) ? initiator.Actor.Name() : "=null")
+            //                                                + " Person=" + ((initiator.Person != null) ? initiator.Person.Name() : "=null")
+            //                                                + " Player=" + ((initiator.Player != null) ? initiator.Player.Name() : "=null")
+            //                                                + " Tool=" + ((initiator.Tool != null) ? initiator.Tool.Type.ToString() + "}" : "=null}"))
+            //                                              : "=null}")
+            //    + " eventArgInt=" + eventArgInt.ToString());
         }
         catch (Exception e)
         {
