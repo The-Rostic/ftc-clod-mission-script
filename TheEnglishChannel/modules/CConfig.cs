@@ -4,7 +4,7 @@ public static class CConfig : Object
 {
     // General logging defines
     public const bool DEBUG_LOCAL_LOG_ENABLE = true;
-    public const bool DEBUG_SERVER_LOG_ENABLE = true;
+    public const bool DEBUG_SERVER_LOG_ENABLE = false;
     static public bool IsLoggingEnabled() { return (DEBUG_LOCAL_LOG_ENABLE || DEBUG_SERVER_LOG_ENABLE); }
 
     // Logging features

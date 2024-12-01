@@ -541,7 +541,6 @@ public class CMissionCommon
             if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("armies[" + i.ToString() + "]=" + missionMapInfo.Armies[i].id.ToString()
                 + " name is \"" + missionMapInfo.Armies[i].name + "\""
                 + " countries are \"" + missionMapInfo.Armies[i].countries +  "\"");
-            
         }
      }
 

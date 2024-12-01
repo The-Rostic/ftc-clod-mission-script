@@ -28,10 +28,10 @@ public class CNetworkComms
     //    {"id":2, "name":"Blue", "countries":"de it"},
     //  ],
     //  "aircrafts":[
-    //   {"id":"1:BoB_LW_JG26_I.200", "army":2, "x":287144, "y":271037, "h":2871,}, 
-    //   {"id":"1:BoB_LW_JG26_I.201", "army":2, "x":287044, "y":271130, "h":2861,}, 
-    //   {"id":"2:BoB_RAF_F_249Sqn_Late.000", "army":1, "x":257144, "y":291037, "h":2981,}, 
-    //   {"id":"2:BoB_RAF_F_249Sqn_Late.001", "army":1, "x":257044, "y":291030, "h":2991,}, 
+    //   {"id":"1:BoB_LW_JG26_I.200", "army":2, "x":287144, "y":271037, "z":2871,}, 
+    //   {"id":"1:BoB_LW_JG26_I.201", "army":2, "x":287044, "y":271130, "z":2861,}, 
+    //   {"id":"2:BoB_RAF_F_249Sqn_Late.000", "army":1, "x":257144, "y":291037, "z":2981,}, 
+    //   {"id":"2:BoB_RAF_F_249Sqn_Late.001", "army":1, "x":257044, "y":291030, "z":2991,}, 
     //  ],
     // }
     private readonly object serverStateLock = new object();
@@ -64,10 +64,12 @@ public class CNetworkComms
                     serverState.Clear();
                     // JSON first open bracket
                     serverState.Append("{\n");
-                    
+
+                    ///////////////////////
                     // Map name
                     serverState.Append(MakeJsonStringEntry(CJsonIds.MAP_NAME, MissionCommon.missionMapInfo.Name));
-                    
+
+                    ///////////////////////
                     // Map time
                     double dMisTime = BaseMission.GamePlay.gpTimeofDay(); // time of day in hours as double value
                     int mt_hours = (int)dMisTime;
@@ -76,7 +78,8 @@ public class CNetworkComms
                     int mt_seconds = (int)(dMisTime * 3600) - mt_minutes * 60;
                     string missionTime = mt_hours.ToString() + ":" + mt_minutes.ToString().PadLeft(2, '0') + ":" + mt_seconds.ToString().PadLeft(2, '0');
                     serverState.Append(MakeJsonStringEntry(CJsonIds.MISSION_TIME, missionTime));
-                    
+
+                    ///////////////////////
                     // Map battle area
                     // open class CJsonIds.BATTLE_AREA
                     serverState.Append("\"" + CJsonIds.BATTLE_AREA + "\":{"); 
@@ -89,6 +92,7 @@ public class CNetworkComms
                     // close class CJsonIds.BATTLE_AREA
                     serverState.Append("},\n");
 
+                    ///////////////////////
                     // Mission armies
                     // open array CJsonIds.ARMIES
                     serverState.Append("\"" + CJsonIds.ARMIES + "\":[\n");
@@ -103,12 +107,57 @@ public class CNetworkComms
                     }
                     // close array CJsonIds.ARMIES
                     serverState.Append("],\n");
+                    
+                    ///////////////////////
+                    //Get aircrafts
+                    // open array CJsonIds.AC_AIRCRAFTS
+                    serverState.Append("\"" + CJsonIds.AC_AIRCRAFTS + "\":[\n");
+                    for (int i = 0; i < armies.Length; i++)
+                    {
+                        int army_id = armies[i].id;
+                        AiAirGroup[] aiAirGroups = BaseMission.GamePlay.gpAirGroups(army_id);
+                        if (aiAirGroups != null)
+                        {
+                            for (int j = 0; j < aiAirGroups.Length; j++)
+                            {
+                                if (aiAirGroups[j] != null)
+                                {
+                                    //string agName = aiAirGroups[j].Name();
+                                    //if (agName == null) agName = "NULL";
+                                    //if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("aiAirGroups["+j.ToString()+"].Name() =" + agName);
+                                    AiActor[] actors = aiAirGroups[j].GetItems();
+                                    if (actors != null)
+                                    {
+                                        for (int k = 0; k < actors.Length; k++)
+                                        {
+                                            if (actors[k] != null)
+                                            {
+                                                string actorName = actors[k].Name();
+                                                Point3d pos = actors[k].Pos();
+                                                serverState.Append("{");
+                                                serverState.Append(MakeJsonStringEntry(CJsonIds.AC_ID, actorName, NO_LINE_BREAK));
+                                                serverState.Append(MakeJsonIntEntry(CJsonIds.AC_ARMY, army_id, NO_LINE_BREAK));
+                                                serverState.Append(MakeJsonIntEntry(CJsonIds.AC_X, (int)pos.x, NO_LINE_BREAK));
+                                                serverState.Append(MakeJsonIntEntry(CJsonIds.AC_Y, (int)pos.y, NO_LINE_BREAK));
+                                                serverState.Append(MakeJsonIntEntry(CJsonIds.AC_Z, (int)pos.z, NO_LINE_BREAK));
+                                                serverState.Append("},\n");
+
+                                                //if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("actors["+k.ToString()+"].Name() =" + actorName);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    // close array CJsonIds.ARMIES
+                    serverState.Append("],\n");
 
 
                     // JSON last close bracket
                     serverState.Append("}");
+                    if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("RadarDataEnd\n<JSONin>" + serverState.ToString() + "<JSONout>\n\n");
                 }
-                if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("RadarDataEnd\n" + serverState.ToString() + "\n\n");
             }
             catch (Exception e)
             {
@@ -147,7 +196,7 @@ public class CNetworkComms
         //public const string AC_PLAYER0 = "player"; <-- useless data for radar
         public const string AC_X = "x";
         public const string AC_Y = "y";
-        public const string AC_H = "h";
+        public const string AC_Z = "z";
     }
 }
 
