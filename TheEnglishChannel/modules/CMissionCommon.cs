@@ -459,10 +459,19 @@ public class CMissionCommon
             x = y = w = h = sector_size = 0;
         }
     }
+
+    public class CArmy
+    {
+        public int id;
+        public string name;
+        public string countries;
+    }
+
     public class CMissionMapInfo
     {
         public string Name = "";
-        public CBattleArea BattleArea = new CBattleArea(); 
+        public CBattleArea BattleArea = new CBattleArea();
+        public CArmy[] Armies = null;
     }
 
     public CMissionMapInfo missionMapInfo = new CMissionMapInfo();
@@ -472,9 +481,11 @@ public class CMissionCommon
         if (DEBUG_MESSAGES && CLog.IsInitialized) { CLog.Write("Mission file path: " + msMyFolder); }
         if (DEBUG_MESSAGES && CLog.IsInitialized) { CLog.Write("Mission file name: " + BaseMission.MissionFileName); }
         ISectionFile sf = BaseMission.GamePlay.gpLoadSectionFile(msMyFolder + "\\" + BaseMission.MissionFileName);
+        
         // Get map name
         missionMapInfo.Name = sf.get("MAIN", "MAP");
         if (DEBUG_MESSAGES && CLog.IsInitialized) { CLog.Write("Map name: " + missionMapInfo.Name); }
+        
         // get battle area information (map grids)
         string battleArea = sf.get("MAIN", "BattleArea");
         if (DEBUG_MESSAGES && CLog.IsInitialized) { CLog.Write("Battle area: " + battleArea); }
@@ -500,8 +511,59 @@ public class CMissionCommon
             + ", h=" + missionMapInfo.BattleArea.h.ToString()
             + ", ssz=" + missionMapInfo.BattleArea.sector_size.ToString()); 
         }
-    }
+        
+        // Get armies info
+        int[] armies = BaseMission.GamePlay.gpArmies();
+        if (armies.Length > 0)
+        {
+            missionMapInfo.Armies = new CArmy[armies.Length];
+        }
+        for (int i = 0; i < armies.Length; i++)
+        {
+            missionMapInfo.Armies[i] = new CArmy();
+            missionMapInfo.Armies[i].id = armies[i];
+            missionMapInfo.Armies[i].name = BaseMission.GamePlay.gpArmyName(armies[i]);
+            missionMapInfo.Armies[i].countries = "";
+            string search_line = "Army " + armies[i];
+            string countries = SearchInSectionFile(ref sf,"main",search_line);
+            if (countries != null)
+            {
+                try
+                {
+                    countries = countries.Substring(search_line.Length + 1, countries.Length - search_line.Length - 1);
+                    missionMapInfo.Armies[i].countries = countries;
+                }
+                catch (Exception e)
+                {
+                    if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write(e.ToString());
+                }
+            }
+            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("armies[" + i.ToString() + "]=" + missionMapInfo.Armies[i].id.ToString()
+                + " name is \"" + missionMapInfo.Armies[i].name + "\""
+                + " countries are \"" + missionMapInfo.Armies[i].countries +  "\"");
+            
+        }
+     }
 
+    private string SearchInSectionFile(ref ISectionFile sf, string section,string search_line)
+    {
+        int lines = sf.lines(section);
+        for (int i = 0; i < lines; i++)
+        {
+            string key;
+            string value;
+            sf.get(section,i, out key, out value);
+            if ((key != null) && (value != null))
+            {
+                value = key + " " + value;
+                if (value.Contains(search_line))
+                {
+                    return value;
+                }
+            }
+        }
+        return null;
+    }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //
