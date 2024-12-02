@@ -1,5 +1,7 @@
 ﻿using System.Text;
 using System;
+using System.IO;
+using System.IO.Compression;
 using System.Collections;
 using maddox.game;
 using maddox.game.world;
@@ -134,9 +136,16 @@ public class CNetworkComms
                                             {
                                                 string actorName = actors[k].Name();
                                                 Point3d pos = actors[k].Pos();
+                                                int stations = ((AiAircraft)actors[k]).Places();
+                                                int engines = aiAirGroups[j].aircraftEnginesNum();
+                                                //string ac_model = ((AiAircraft)actors[k]).InternalTypeName();
+                                                string ac_model = ((AiAircraft)actors[k]).VariantName();
                                                 serverState.Append("{");
                                                 serverState.Append(MakeJsonStringEntry(CJsonIds.AC_ID, actorName, NO_LINE_BREAK));
                                                 serverState.Append(MakeJsonIntEntry(CJsonIds.AC_ARMY, army_id, NO_LINE_BREAK));
+                                                serverState.Append(MakeJsonStringEntry(CJsonIds.AC_MODEL, ac_model, NO_LINE_BREAK));
+                                                serverState.Append(MakeJsonIntEntry(CJsonIds.AC_ENGINES_CNT, engines, NO_LINE_BREAK));
+                                                serverState.Append(MakeJsonIntEntry(CJsonIds.AC_CREW_STATIONS_CNT, stations, NO_LINE_BREAK));
                                                 serverState.Append(MakeJsonIntEntry(CJsonIds.AC_X, (int)pos.x, NO_LINE_BREAK));
                                                 serverState.Append(MakeJsonIntEntry(CJsonIds.AC_Y, (int)pos.y, NO_LINE_BREAK));
                                                 serverState.Append(MakeJsonIntEntry(CJsonIds.AC_Z, (int)pos.z, NO_LINE_BREAK));
@@ -150,13 +159,26 @@ public class CNetworkComms
                             }
                         }
                     }
+
                     // close array CJsonIds.ARMIES
                     serverState.Append("],\n");
 
 
                     // JSON last close bracket
                     serverState.Append("}");
-                    if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("RadarDataEnd\n<JSONin>" + serverState.ToString() + "<JSONout>\n\n");
+                    string serverStateStr = serverState.ToString();
+                    if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("RadarDataEnd\n<JSONin>" + serverStateStr + "<JSONout>\n\n");
+                    //
+                    // zipped Base64 test
+                    //
+                    if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("RadarData64Start\n");
+                    string base64 = CompressString.StringCompressor.CompressString(serverStateStr); //StringCompression.Compress(serverStateStr); //
+                    if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("RadarData64End\n<b64in>" + base64 + "<b64out>\n\n");
+
+                    if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("RadarDataDecodeStart\n");
+                    string decode = CompressString.StringCompressor.DecompressString(base64); //StringCompression.Decompress(base64); //
+                    if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("RadarDataDecodeEnd\n<DECODEin>" + decode + "<DECODEout>\n\n");
+
                 }
             }
             catch (Exception e)
@@ -177,7 +199,7 @@ public class CNetworkComms
     }
     private class CJsonIds
     {
-        public const string MAP_NAME = "map_mame";
+        public const string MAP_NAME = "map_name";
         public const string MISSION_TIME = "mission_time";
         public const string BATTLE_AREA = "battle_area";
         public const string BATTLE_AREA_X = "x";
@@ -192,7 +214,9 @@ public class CNetworkComms
         public const string AC_AIRCRAFTS = "aircrafts";
         public const string AC_ID = "id";
         public const string AC_ARMY = "army";
-        //public const string AC_MODEL = "model"; <-- useless data for radar
+        public const string AC_MODEL = "model";
+        public const string AC_ENGINES_CNT = "eng";
+        public const string AC_CREW_STATIONS_CNT = "sta";
         //public const string AC_PLAYER0 = "player"; <-- useless data for radar
         public const string AC_X = "x";
         public const string AC_Y = "y";
@@ -200,3 +224,110 @@ public class CNetworkComms
     }
 }
 
+// base64 data contain only gzipped string
+namespace CompressString
+{
+    internal static class StringCompressor
+    {
+        /// <summary>
+        /// Compresses the string.
+        /// </summary>
+        /// <param name="text">The text.</param>
+        /// <returns></returns>
+        public static string CompressString(string text)
+        {
+            byte[] buffer = Encoding.UTF8.GetBytes(text);
+            var memoryStream = new MemoryStream();
+            using (var gZipStream = new GZipStream(memoryStream, CompressionMode.Compress, true))
+            {
+                gZipStream.Write(buffer, 0, buffer.Length);
+            }
+            memoryStream.Position = 0;
+            var compressedData = new byte[memoryStream.Length];
+            memoryStream.Read(compressedData, 0, compressedData.Length);
+            return Convert.ToBase64String(compressedData);
+        }
+
+        /// <summary>
+        /// Decompresses the string.
+        /// </summary>
+        /// <param name="compressedText">The compressed text.</param>
+        /// <returns></returns>
+        public static string DecompressString(string compressedText)
+        {
+            byte[] gZipBuffer = Convert.FromBase64String(compressedText);
+            using (var memoryStream = new MemoryStream())
+            {
+                int dataLength = gZipBuffer.Length;
+                memoryStream.Write(gZipBuffer, 0, gZipBuffer.Length);
+                memoryStream.Position = 0;
+                using (var gzip = new GZipStream(memoryStream, CompressionMode.Decompress))
+                using (var reader = new StreamReader(gzip))
+                {
+                    return reader.ReadToEnd();
+                }
+            }
+        }
+    }
+}
+
+/*
+// base64 data has 4 bytes header with length of gzipped string
+namespace CompressString
+{
+    internal static class StringCompressor
+    {
+        /// <summary>
+        /// Compresses the string.
+        /// </summary>
+        /// <param name="text">The text.</param>
+        /// <returns></returns>
+        public static string CompressString(string text)
+        {
+            byte[] buffer = Encoding.UTF8.GetBytes(text);
+            var memoryStream = new MemoryStream();
+            using (var gZipStream = new GZipStream(memoryStream, CompressionMode.Compress, true))
+            {
+                gZipStream.Write(buffer, 0, buffer.Length);
+            }
+
+            memoryStream.Position = 0;
+
+            var compressedData = new byte[memoryStream.Length];
+            memoryStream.Read(compressedData, 0, compressedData.Length);
+
+
+
+            var gZipBuffer = new byte[compressedData.Length + 4];
+            Buffer.BlockCopy(compressedData, 0, gZipBuffer, 4, compressedData.Length);
+            Buffer.BlockCopy(BitConverter.GetBytes(buffer.Length), 0, gZipBuffer, 0, 4);
+            return Convert.ToBase64String(gZipBuffer);
+        }
+
+        /// <summary>
+        /// Decompresses the string.
+        /// </summary>
+        /// <param name="compressedText">The compressed text.</param>
+        /// <returns></returns>
+        public static string DecompressString(string compressedText)
+        {
+            byte[] gZipBuffer = Convert.FromBase64String(compressedText);
+            using (var memoryStream = new MemoryStream())
+            {
+                int dataLength = BitConverter.ToInt32(gZipBuffer, 0);
+                memoryStream.Write(gZipBuffer, 4, gZipBuffer.Length - 4);
+                
+                var buffer = new byte[dataLength];
+                
+                memoryStream.Position = 0;
+                using (var gZipStream = new GZipStream(memoryStream, CompressionMode.Decompress))
+                {
+                    gZipStream.Read(buffer, 0, buffer.Length);
+                }
+                
+                return Encoding.UTF8.GetString(buffer);
+            }
+        }
+    }
+}
+*/
