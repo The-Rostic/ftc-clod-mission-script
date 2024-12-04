@@ -121,7 +121,11 @@ public static class CLog
             dMisTime = dMisTime - mt_hours;
             int mt_minutes = (int)(dMisTime * 60);
             int mt_seconds = (int)(dMisTime * 3600) - mt_minutes * 60;
-            string missionTime = mt_hours.ToString() + ":" + mt_minutes.ToString().PadLeft(2, '0') + ":" + mt_seconds.ToString().PadLeft(2, '0');
+            int mt_millisec = (int)(dMisTime * 3600000 - mt_minutes * 60000 - mt_seconds * 1000);
+            string missionTime = mt_hours.ToString() 
+                + ":" + mt_minutes.ToString().PadLeft(2, '0') 
+                + ":" + mt_seconds.ToString().PadLeft(2, '0')
+                + "." + mt_millisec.ToString().PadLeft(3, '0');
             // Real time
             DateTime dt = DateTime.Now;
             string logmsg = dt.ToString("H:mm:ss,") + dt.Millisecond.ToString("000") + "(MT+" + missionTime + ") : " + message;
