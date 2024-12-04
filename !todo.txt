@@ -1,3 +1,9 @@
-- Add threead with socket and protocol that provides capability to send data by client request about all airgroups and other mission data.
-- Add neutral airfields near spawn areas to list of friendly airfields for quick despawn script to work there too.
 - Add refuel/rearm feature through TAB-4 menu. Configurable to work in radius of friendly airfields and spawnareas or by list of coorditanes where decorations of servicable area will be created dynamically by script.
+- Move world state data collecting to separate thread due to now it can take about 30mS.
+- Add next data to JSON world state object:
+  + radar coverage area with radar position;
+	+ ground observer coverage;
+	+ add ships tracking;
+	+ add frontlines markers.
+- Add thread with socket and protocol that provides capability to send data by client request about all airgroups and other mission data.
+- Added "Pip-Squeak" feature through TBA-4 menu. Feature should be available only for "Red" (RAF) army. Player can activate feature only on the ground at home base only. When activated, his aircraft marked as "identified as friendly" for "Radar Tool" through network.
