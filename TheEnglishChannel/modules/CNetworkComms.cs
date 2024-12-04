@@ -17,8 +17,8 @@ using System.Security.AccessControl; //-------------------
 public class CNetworkComms
 {
     private const bool DEBUG_MESSAGES = true;
-    private Mission BaseMission = null;
-    private CMissionCommon MissionCommon = null;
+    private AMission baseMission = null;
+    private CMissionCommon missionCommon = null;
     // Example of serverState. All coordinates, distances and heights in meters.
     //
     // {
@@ -40,10 +40,10 @@ public class CNetworkComms
     private readonly object serverStateLock = new object();
     private StringBuilder serverState = new StringBuilder();
     private long serverStateIdx = 0; // increments every time serverState updated.
-    public CNetworkComms(Mission mission, CMissionCommon mission_common)
+    public CNetworkComms(CMissionCommon mission_common)
     {
-        BaseMission = mission;
-        MissionCommon = mission_common;
+        baseMission = mission_common.baseMission;
+        missionCommon = mission_common;
         serverState.Capacity = 1024 * 1024; // I doubt real data will ever be such big
 
         // run to fill "serverState" with data
@@ -52,14 +52,14 @@ public class CNetworkComms
     public void OnBattleStoped() { 
         // Do something like stop comms and close sockets
     }
-    private long RadarPollTickLast = 0;
+    private long radarPollTickLast = 0;
     public void MissionScriptPoll() {
         //
         // Radar data poller
         //
-        if (DateTime.Now.Ticks - RadarPollTickLast >= CConfig.RADAR_DATA_UPDATE_INTERVAL_MS * CMissionCommon.TICKS_IN_MILISECOND)
+        if (DateTime.Now.Ticks - radarPollTickLast >= CConfig.RADAR_DATA_UPDATE_INTERVAL_MS * CMissionCommon.TICKS_IN_MILISECOND)
         {
-            RadarPollTickLast = DateTime.Now.Ticks;
+            radarPollTickLast = DateTime.Now.Ticks;
             try
             {
                 if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("RadarDataStart\n");
@@ -76,11 +76,11 @@ public class CNetworkComms
 
                     ///////////////////////
                     // Map name
-                    serverState.Append(MakeJsonStringEntry(CJsonIds.MAP_NAME, MissionCommon.missionMapInfo.Name, JSONending.BOTH));
+                    serverState.Append(MakeJsonStringEntry(CJsonIds.MAP_NAME, missionCommon.missionMapInfo.Name, JSONending.BOTH));
 
                     ///////////////////////
                     // Map time
-                    double dMisTime = BaseMission.GamePlay.gpTimeofDay(); // time of day in hours as double value
+                    double dMisTime = baseMission.GamePlay.gpTimeofDay(); // time of day in hours as double value
                     int mt_hours = (int)dMisTime;
                     dMisTime = dMisTime - mt_hours;
                     int mt_minutes = (int)(dMisTime * 60);
@@ -96,7 +96,7 @@ public class CNetworkComms
                     // Map battle area
                     // open class CJsonIds.BATTLE_AREA
                     serverState.Append("\"" + CJsonIds.BATTLE_AREA + "\":{"); 
-                    CMissionCommon.CBattleArea battleArea = BaseMission.missionCommon.missionMapInfo.BattleArea;
+                    CMissionCommon.CBattleArea battleArea = missionCommon.missionMapInfo.BattleArea;
                     serverState.Append(MakeJsonIntEntry(CJsonIds.BATTLE_AREA_X, battleArea.x, JSONending.COMA));
                     serverState.Append(MakeJsonIntEntry(CJsonIds.BATTLE_AREA_Y, battleArea.y, JSONending.COMA));
                     serverState.Append(MakeJsonIntEntry(CJsonIds.BATTLE_AREA_W, battleArea.w, JSONending.COMA));
@@ -109,7 +109,7 @@ public class CNetworkComms
                     // Mission armies
                     // open array CJsonIds.ARMIES
                     serverState.Append("\"" + CJsonIds.ARMIES + "\":[\n");
-                    CMissionCommon.CArmy[] armies = BaseMission.missionCommon.missionMapInfo.Armies;
+                    CMissionCommon.CArmy[] armies = missionCommon.missionMapInfo.Armies;
                     int last_i = armies.Length - 1;
                     for (int i = 0; i < armies.Length; i++)
                     {
@@ -130,7 +130,7 @@ public class CNetworkComms
                     for (int i = 0; i < armies.Length; i++)
                     {
                         int army_id = armies[i].id;
-                        AiAirGroup[] aiAirGroups = BaseMission.GamePlay.gpAirGroups(army_id);
+                        AiAirGroup[] aiAirGroups = baseMission.GamePlay.gpAirGroups(army_id);
                         if (aiAirGroups != null)
                         {
                             int last_j = aiAirGroups.Length - 1;

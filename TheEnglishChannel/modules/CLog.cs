@@ -10,22 +10,22 @@ public static class CLog
     private static bool initialized = false;
     public static bool IsInitialized { get { return initialized; } }
 
-    private static AMission m_Mission = null;
+    private static AMission baseMission = null;
 
-    private static StreamWriter m_LogFile;
+    private static StreamWriter logFile;
     /// <summary>
     /// this variable set to true only when new data written to log file
     /// </summary>
-    private static bool m_NeedFlush = false;
-    private static TimeSpan m_LastFlush;
-    private static Stopwatch m_Stopwatch = null;
+    private static bool needFlush = false;
+    private static TimeSpan lastFlush;
+    private static Stopwatch missionStartStopwatch = null;
 
     /// <summary>
     /// Time mission running in milliseconds
     /// </summary>
     public static TimeSpan MissionRunningTime
     {
-        get { TimeSpan time; lock (m_Stopwatch) { time = m_Stopwatch.Elapsed; } return time; }
+        get { TimeSpan time; lock (missionStartStopwatch) { time = missionStartStopwatch.Elapsed; } return time; }
     }
 
 
@@ -35,18 +35,18 @@ public static class CLog
     /// <param name="Mission">The Mission (use 'this')</param>
     public static void Init(AMission Mission)
     {
-        m_Mission = Mission;
-        m_Stopwatch = new Stopwatch();
-        m_Stopwatch.Start();
+        baseMission = Mission;
+        missionStartStopwatch = new Stopwatch();
+        missionStartStopwatch.Start();
 
         if (CConfig.DEBUG_LOCAL_LOG_ENABLE)
         {
-            m_LastFlush = MissionRunningTime;
+            lastFlush = MissionRunningTime;
             try
             {
                 DateTime dt = DateTime.Now;
                 string m_sUserDoc = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + @"\1C SoftClub\il-2 sturmovik cliffs of dover\";
-                string m_sMyFolder = Path.GetDirectoryName(m_Mission.sPathMyself);
+                string m_sMyFolder = Path.GetDirectoryName(baseMission.sPathMyself);
                 string dir = m_sUserDoc + m_sMyFolder + @"\Logs";
                 // make logs dir if not exists
                 if (!Directory.Exists(dir))
@@ -74,14 +74,14 @@ public static class CLog
                 {
                     Write(ex.ToString() + "\n" + ex.Message.ToString());
                 }
-                m_LogFile = File.CreateText(dir + "\\Log_1.log");
+                logFile = File.CreateText(dir + "\\Log_1.log");
 
-                //m_LogFile = File.CreateText(dir + "\\" + dt.Year.ToString("0000") + dt.Month.ToString("00") + dt.Day.ToString("00") + dt.Hour.ToString("00") + dt.Minute.ToString("00") + dt.Second.ToString("00") + ".log");
+                //logFile = File.CreateText(dir + "\\" + dt.Year.ToString("0000") + dt.Month.ToString("00") + dt.Day.ToString("00") + dt.Hour.ToString("00") + dt.Minute.ToString("00") + dt.Second.ToString("00") + ".log");
             }
             catch (Exception ex)
             {
                 Write(ex.ToString() + "\n" + ex.Message.ToString());
-                m_LogFile = null;
+                logFile = null;
             }
         }
         initialized = true;
@@ -94,12 +94,12 @@ public static class CLog
     public static void Close()
     {
         if (!initialized) return;
-        if (m_LogFile != null)
+        if (logFile != null)
         {
             try
             {
                 Write("Mission stopped.");
-                m_LogFile.Close();
+                logFile.Close();
             }
             catch
             {
@@ -113,10 +113,10 @@ public static class CLog
     public static void Write(string message)
     {
         if (!initialized) return;
-        if ((CConfig.DEBUG_SERVER_LOG_ENABLE) || (m_LogFile != null))
+        if ((CConfig.DEBUG_SERVER_LOG_ENABLE) || (logFile != null))
         {
             // Map time
-            double dMisTime = m_Mission.GamePlay.gpTimeofDay(); // time of day in hours as double value
+            double dMisTime = baseMission.GamePlay.gpTimeofDay(); // time of day in hours as double value
             int mt_hours = (int)dMisTime;
             dMisTime = dMisTime - mt_hours;
             int mt_minutes = (int)(dMisTime * 60);
@@ -130,12 +130,12 @@ public static class CLog
             DateTime dt = DateTime.Now;
             string logmsg = dt.ToString("H:mm:ss,") + dt.Millisecond.ToString("000") + "(MT+" + missionTime + ") : " + message;
 
-            if (m_LogFile != null)
+            if (logFile != null)
             {
                 try
                 {
-                    m_LogFile.WriteLine(logmsg);
-                    m_NeedFlush = true;
+                    logFile.WriteLine(logmsg);
+                    needFlush = true;
                 }
                 catch
                 {
@@ -144,7 +144,7 @@ public static class CLog
 
             if (CConfig.DEBUG_SERVER_LOG_ENABLE)
             {
-                m_Mission.GamePlay.gpLogServer(logmsg);
+                baseMission.GamePlay.gpLogServer(logmsg);
             }
         }
     }
@@ -158,11 +158,11 @@ public static class CLog
         {
             try
             {
-                if ((MissionRunningTime.TotalSeconds - m_LastFlush.TotalSeconds > 30) && m_NeedFlush)
+                if ((MissionRunningTime.TotalSeconds - lastFlush.TotalSeconds > 30) && needFlush)
                 {
-                    m_LastFlush = MissionRunningTime;
-                    m_LogFile.Flush();
-                    m_NeedFlush = false;
+                    lastFlush = MissionRunningTime;
+                    logFile.Flush();
+                    needFlush = false;
                 }
             }
             catch

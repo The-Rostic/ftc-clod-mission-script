@@ -20,12 +20,12 @@ using maddox.GP; //-------------------
 public class Mission : AMission
 {
     public const bool DEBUG_MESSAGES = true;
-    public CMissionCommon missionCommon = null;
+    private CMissionCommon missionCommon = null;
 
     /////////////////////////////////////
     // write mission custom code below
 
-    public void StartAIhunters()
+    private void StartAIhunters()
     {
         GamePlay.gpPostMissionLoad(Path.GetDirectoryName(this.sPathMyself) + @"\bob-mis-000-sub-bf109.mis");
         GamePlay.gpPostMissionLoad(Path.GetDirectoryName(this.sPathMyself) + @"\bob-mis-000-sub-spits.mis");

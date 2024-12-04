@@ -34,23 +34,25 @@ public class CKillDisusedPlanes {
     private const bool DEBUG_MESSAGES = true;
 
     // number of seconds to wait between damage and destroy of aircraft on friendly airfield
-    protected const int TIMEOUT_NOTAIRBORNE = 0; // NEVER CHANGE! IF NOT EQUAL TO ZERO AIRCRAFT WITH BOMBS WILL EXPLODE EVERYTHING AROUND!
+    private const int TIMEOUT_NOTAIRBORNE = 0; // NEVER CHANGE! IF NOT EQUAL TO ZERO AIRCRAFT WITH BOMBS WILL EXPLODE EVERYTHING AROUND!
 
     // number of seconds to wait between damage and destroy of aircraft on friendly airfield
-    protected const int TIMEOUT_ATOPERATIONALAIRBASE = 600;
+    private const int TIMEOUT_ATOPERATIONALAIRBASE = 600;
 
     // number of seconds to wait between damage and destroy airborne aircraft
-    protected const int TIMEOUT_ABANDONED = -1; // < 0 means do not destroy aircraft
+    private const int TIMEOUT_ABANDONED = -1; // < 0 means do not destroy aircraft
 
-    protected AMission m_Mission = null;
+    private AMission baseMission = null;
+    private CMissionCommon missionCommon = null;
 
     /// <summary>
     /// Constructor
     /// </summary> 
     /// <param name="Mission">The Mission (use 'this')</param>
-    public CKillDisusedPlanes(AMission mission)
+    public CKillDisusedPlanes(CMissionCommon mission_common)
     {
-        m_Mission = mission;
+        baseMission = mission_common.baseMission;
+        missionCommon = mission_common;
     }
     /// <summary>
     /// Make sure that the plane a player has left cannot be regained
@@ -61,7 +63,7 @@ public class CKillDisusedPlanes {
     public void OnPlaceLeave(Player CurPlayer, AiActor ActorMain, int iPlaceIndex)
     {
         // NO DELAYS HERE! Otherwise aircraft with bombs on the ground will blow up all around!
-        m_Mission.Timeout(0, () => {
+        baseMission.Timeout(0, () => {
             TryDamagePlane(ActorMain, CurPlayer); 
         });
     }
@@ -70,7 +72,7 @@ public class CKillDisusedPlanes {
     /// </summary> 
     /// <param name="CurPlayer"></param>
     /// <param name="ActorMain"></param>
-    protected void TryDamagePlane(AiActor ActorMain, Player CurPlayer)
+    private void TryDamagePlane(AiActor ActorMain, Player CurPlayer)
     {
         if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Try to damage/destroy aircraft" + ActorMain.Name() + " that was controlled by player " + CurPlayer.Name());
 
@@ -95,10 +97,10 @@ public class CKillDisusedPlanes {
             {
                 if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("But there is no pilot! Remove fuel from tanks for AI pilot!");
                 //Without fuel AI can't move to faraway
-                if (!(m_Mission as Mission).missionCommon.IsDefueledAircraft(Aircraft, false))
+                if (!missionCommon.IsDefueledAircraft(Aircraft, false))
                 {
                     int fuelPct = Aircraft.GetCurrentFuelQuantityInPercent();
-                    (m_Mission as Mission).missionCommon.DefueledAcircrafts.Add(new CMissionCommon.DefueledAircraft(Aircraft, fuelPct));
+                    missionCommon.defueledAcircrafts.Add(new CMissionCommon.DefueledAircraft(Aircraft, fuelPct));
                 }
                 Aircraft.RefuelPlane(0);
             }
@@ -115,7 +117,7 @@ public class CKillDisusedPlanes {
         if (!CConfig.REALISTIC_AIRCRAFT_DESPAWN_TIMEOUT)
         {
             if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Aircraft " + Aircraft.Name() + " will be destroyed immediately.");
-            m_Mission.Timeout(0, () =>
+            baseMission.Timeout(0, () =>
             {
                 DestroyPlane(Aircraft);
             });
@@ -125,7 +127,7 @@ public class CKillDisusedPlanes {
         /// Make Damage
         /// We wrap in try ... catch to make sure at least *some* of them are effected
         /// no matter what happens (e.g. the Wing part throws on Blenheims)
-        CMissionCommon.EAircraftLocation aircraftLocation = (m_Mission as Mission).missionCommon.GetAircraftLocation(Aircraft);
+        CMissionCommon.EAircraftLocation aircraftLocation = missionCommon.GetAircraftLocation(Aircraft);
         if (aircraftLocation == CMissionCommon.EAircraftLocation.Airborne)
         {
             if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Aircraft" + ActorMain.Name() + " airborne. Damage will be done now to prevent AI control");
@@ -180,10 +182,10 @@ public class CKillDisusedPlanes {
         {
             if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Aircraft " + ActorMain.Name() + " on the ground, no damage, just remove fuel from tanks for AI");
             // aircraft on the ground, no need to brake it. Without fuel AI cant move to faraway
-            if (!(m_Mission as Mission).missionCommon.IsDefueledAircraft(Aircraft, false))
+            if (!missionCommon.IsDefueledAircraft(Aircraft, false))
             {
                 int fuelPct = Aircraft.GetCurrentFuelQuantityInPercent();
-                (m_Mission as Mission).missionCommon.DefueledAcircrafts.Add(new CMissionCommon.DefueledAircraft(Aircraft, fuelPct));
+                missionCommon.defueledAcircrafts.Add(new CMissionCommon.DefueledAircraft(Aircraft, fuelPct));
             }
             Aircraft.RefuelPlane(0);
         }
@@ -203,7 +205,7 @@ public class CKillDisusedPlanes {
         if (iDestroyTimeout > -1)
         {
             if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Aircraft " + Aircraft.Name() + " will be destroyed in " + iDestroyTimeout.ToString() + " seconds.");
-            m_Mission.Timeout(iDestroyTimeout, () =>
+            baseMission.Timeout(iDestroyTimeout, () =>
             {
                 DestroyPlane(Aircraft);
             });

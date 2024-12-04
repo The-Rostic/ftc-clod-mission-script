@@ -16,13 +16,13 @@ public class CMissionCommon
 {
     private const bool DEBUG_MESSAGES = true;
 
-    private CKillDisusedPlanes m_KillDisusedPlanes = null;
-    private CNetworkComms m_NetworkComms = null;
-    private Mission BaseMission = null; 
+    private CKillDisusedPlanes killDisusedPlanes = null;
+    private CNetworkComms networkComms = null;
+    public AMission baseMission = null; 
 
-    public CMissionCommon(Mission mission)
+    public CMissionCommon(AMission mission)
     {
-        BaseMission = mission;
+        baseMission = mission;
     }
 
     public void OnBattleInit()
@@ -33,16 +33,16 @@ public class CMissionCommon
     public void OnBattleStarted()
     {
         if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("OnBattleStarted");
-        m_KillDisusedPlanes = new CKillDisusedPlanes(BaseMission);
+        killDisusedPlanes = new CKillDisusedPlanes(this);
         PrepareMissionMapInfo();
         PrepareAirports();
-        if (CConfig.NETWORKING_ENABLE) m_NetworkComms = new CNetworkComms(BaseMission, this);
+        if (CConfig.NETWORKING_ENABLE) networkComms = new CNetworkComms(this);
     }
 
     public void OnBattleStoped()
     {
         if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("OnBattleStoped");
-        if (CConfig.NETWORKING_ENABLE) m_NetworkComms.OnBattleStoped();
+        if (CConfig.NETWORKING_ENABLE) networkComms.OnBattleStoped();
         CLog.Close();
     }
 
@@ -58,10 +58,10 @@ public class CMissionCommon
     public const long TICKS_IN_SECOND = 10000000;
     public const long TICKS_IN_MILISECOND = 10000;
     private const long PERFORMANCE_LOG_INTERVAL = TICKS_IN_SECOND;
-    GameTick GameTickData = new GameTick { Max = 0, Min = 1000* PERFORMANCE_LOG_INTERVAL, Avg = 0, AvgCnt = 0, LogTick = 0 };
-    private long GameTickLast = -1; // 1 tick is equal to 100 nano secods. 10000000 ticks in second
-    private long GameTickLastLog = -1;
-    private DateTime GameTickDt;
+    private GameTick gameTickData = new GameTick { Max = 0, Min = 1000* PERFORMANCE_LOG_INTERVAL, Avg = 0, AvgCnt = 0, LogTick = 0 };
+    private long gameTickLast = -1; // 1 tick is equal to 100 nano secods. 10000000 ticks in second
+    private long gameTickLastLog = -1;
+    private DateTime gameTickDt;
     public void OnTickGame()
     {
         // NO DEBUG LOG HERE!!! HAVE TO BE ULTRA FAST FUNCTION!!!
@@ -69,39 +69,39 @@ public class CMissionCommon
         // But performance debug logging here when need. DO NOT FORGET TO DISABLE!
         if (CConfig.DEBUG_PERFORMANCE_LOG_ENABLE && CLog.IsInitialized)
         {
-            GameTickDt = DateTime.Now;
-            if (GameTickLast == -1)
+            gameTickDt = DateTime.Now;
+            if (gameTickLast == -1)
             {
-                GameTickLast = GameTickDt.Ticks;
-                GameTickLastLog = GameTickDt.Ticks;
+                gameTickLast = gameTickDt.Ticks;
+                gameTickLastLog = gameTickDt.Ticks;
                 return;
             }
-            long tickInterval = GameTickDt.Ticks - GameTickLast;
-            GameTickLast = GameTickDt.Ticks;
-            if (0 == GameTickData.AvgCnt) GameTickData.LogTick = tickInterval;
-            GameTickData.Avg += tickInterval;
-            GameTickData.AvgCnt++;
-            if (tickInterval > GameTickData.Max) GameTickData.Max = tickInterval;
-            if (tickInterval < GameTickData.Min) GameTickData.Min = tickInterval;
-            if (GameTickDt.Ticks - GameTickLastLog >= PERFORMANCE_LOG_INTERVAL)
+            long tickInterval = gameTickDt.Ticks - gameTickLast;
+            gameTickLast = gameTickDt.Ticks;
+            if (0 == gameTickData.AvgCnt) gameTickData.LogTick = tickInterval;
+            gameTickData.Avg += tickInterval;
+            gameTickData.AvgCnt++;
+            if (tickInterval > gameTickData.Max) gameTickData.Max = tickInterval;
+            if (tickInterval < gameTickData.Min) gameTickData.Min = tickInterval;
+            if (gameTickDt.Ticks - gameTickLastLog >= PERFORMANCE_LOG_INTERVAL)
             {
-                GameTickLastLog = GameTickLast;
-                CLog.Write("#PFMNC_GT;MIN;"+GameTickData.Min.ToString()+ ";MAX;"+GameTickData.Max.ToString()+";AVG;"+(GameTickData.Avg/GameTickData.AvgCnt).ToString()+ ";LOG;"+GameTickData.LogTick.ToString());
-                GameTickData.Max = 0;
-                GameTickData.Min = 1000 * PERFORMANCE_LOG_INTERVAL;
-                GameTickData.Avg = 0;
-                GameTickData.AvgCnt = 0;
-                GameTickData.LogTick = 0;
+                gameTickLastLog = gameTickLast;
+                CLog.Write("#PFMNC_GT;MIN;"+gameTickData.Min.ToString()+ ";MAX;"+gameTickData.Max.ToString()+";AVG;"+(gameTickData.Avg/gameTickData.AvgCnt).ToString()+ ";LOG;"+gameTickData.LogTick.ToString());
+                gameTickData.Max = 0;
+                gameTickData.Min = 1000 * PERFORMANCE_LOG_INTERVAL;
+                gameTickData.Avg = 0;
+                gameTickData.AvgCnt = 0;
+                gameTickData.LogTick = 0;
             }
         }
         // Radar and other networking stuff poller
-        if (CConfig.NETWORKING_ENABLE) m_NetworkComms.MissionScriptPoll();
+        if (CConfig.NETWORKING_ENABLE) networkComms.MissionScriptPoll();
     }
 
-    GameTick RealTickData = new GameTick { Max = 0, Min = 1000 * PERFORMANCE_LOG_INTERVAL, Avg = 0, AvgCnt = 0, LogTick = 0 };
-    private long RealTickLast = -1;
-    private long RealTickLastLog = -1;
-    private DateTime RealTickDt;
+    private GameTick realTickData = new GameTick { Max = 0, Min = 1000 * PERFORMANCE_LOG_INTERVAL, Avg = 0, AvgCnt = 0, LogTick = 0 };
+    private long realTickLast = -1;
+    private long realTickLastLog = -1;
+    private DateTime realTickDt;
 
     public void OnTickReal()
     {
@@ -110,29 +110,29 @@ public class CMissionCommon
         // But performance debug logging here when need. DO NOT FORGET TO DISABLE!
         if (CConfig.DEBUG_PERFORMANCE_LOG_ENABLE && CLog.IsInitialized)
         {
-            RealTickDt = DateTime.Now;
-            if (RealTickLast == -1)
+            realTickDt = DateTime.Now;
+            if (realTickLast == -1)
             {
-                RealTickLast = RealTickDt.Ticks;
-                RealTickLastLog = RealTickDt.Ticks;
+                realTickLast = realTickDt.Ticks;
+                realTickLastLog = realTickDt.Ticks;
                 return;
             }
-            long tickInterval = RealTickDt.Ticks - RealTickLast;
-            RealTickLast = RealTickDt.Ticks;
-            if (0 == RealTickData.AvgCnt) RealTickData.LogTick = tickInterval;
-            RealTickData.Avg += tickInterval;
-            RealTickData.AvgCnt++;
-            if (tickInterval > RealTickData.Max) RealTickData.Max = tickInterval;
-            if (tickInterval < RealTickData.Min) RealTickData.Min = tickInterval;
-            if (RealTickDt.Ticks - RealTickLastLog >= PERFORMANCE_LOG_INTERVAL)
+            long tickInterval = realTickDt.Ticks - realTickLast;
+            realTickLast = realTickDt.Ticks;
+            if (0 == realTickData.AvgCnt) realTickData.LogTick = tickInterval;
+            realTickData.Avg += tickInterval;
+            realTickData.AvgCnt++;
+            if (tickInterval > realTickData.Max) realTickData.Max = tickInterval;
+            if (tickInterval < realTickData.Min) realTickData.Min = tickInterval;
+            if (realTickDt.Ticks - realTickLastLog >= PERFORMANCE_LOG_INTERVAL)
             {
-                RealTickLastLog = RealTickLast;
-                CLog.Write("#PFMNC_RT;MIN;" + RealTickData.Min.ToString() + ";MAX;" + RealTickData.Max.ToString() + ";AVG;" + (RealTickData.Avg / RealTickData.AvgCnt).ToString() + ";LOG;" + RealTickData.LogTick.ToString());
-                RealTickData.Max = 0;
-                RealTickData.Min = 1000 * PERFORMANCE_LOG_INTERVAL;
-                RealTickData.Avg = 0;
-                RealTickData.AvgCnt = 0;
-                RealTickData.LogTick = 0;
+                realTickLastLog = realTickLast;
+                CLog.Write("#PFMNC_RT;MIN;" + realTickData.Min.ToString() + ";MAX;" + realTickData.Max.ToString() + ";AVG;" + (realTickData.Avg / realTickData.AvgCnt).ToString() + ";LOG;" + realTickData.LogTick.ToString());
+                realTickData.Max = 0;
+                realTickData.Min = 1000 * PERFORMANCE_LOG_INTERVAL;
+                realTickData.Avg = 0;
+                realTickData.AvgCnt = 0;
+                realTickData.LogTick = 0;
             }
         }
     }
@@ -147,12 +147,12 @@ public class CMissionCommon
                 int playerIdx = GetPlayerAssignedAiAircraftIdx(player);
                 if (playerIdx >= 0)
                 {
-                    AiAircraft aircraft = PlayersAssignedAircrafts[playerIdx].aircraft;
+                    AiAircraft aircraft = playersAssignedAircrafts[playerIdx].aircraft;
                     if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Player " + player.Name() + " was assigned to aircraft! Resign now and destroy aircraft!");
                     DropPlayerFromAssignedAiAircraft(player);
-                    BaseMission.Timeout(0.1, () =>
+                    baseMission.Timeout(0.1, () =>
                     {
-                        m_KillDisusedPlanes.DestroyPlane(aircraft);
+                        killDisusedPlanes.DestroyPlane(aircraft);
                     });
                 }
             }
@@ -197,9 +197,9 @@ public class CMissionCommon
                         {
                             if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("This aricraft " + aircraft.Name() + " is about to be destroyed!");
                             // PLayer will be removed from this newly created aircraft by script! But not destroyed in OnPlaceLeave() due to he is already assigned to another aircraft! Let's destroy it here!
-                            BaseMission.Timeout(0.1, () =>
+                            baseMission.Timeout(0.1, () =>
                             {
-                                m_KillDisusedPlanes.DestroyPlane(aircraft);
+                                killDisusedPlanes.DestroyPlane(aircraft);
                             });
                         }
                         else
@@ -230,7 +230,7 @@ public class CMissionCommon
                     if (IsPlayerAssignedToAircraft(player, aircraft))
                     {
                         if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Player " + player.Name() + " is trying to leave place in aircraft " + aircraft.Name());
-                        bool isNoPlayersInAircraft = m_KillDisusedPlanes.IsNoPLayersInAircraft(aircraft);
+                        bool isNoPlayersInAircraft = killDisusedPlanes.IsNoPLayersInAircraft(aircraft);
                         if (isNoPlayersInAircraft || (placeIndex == 0)) //pilot cann't leave airborne aircraft even if another seat occupied
                         {
                             if (aircraft.IsAlive() && (aircraft.Person(0) != null) && (aircraft.Person(0).Health > 0) && aircraft.IsValid())
@@ -241,12 +241,12 @@ public class CMissionCommon
                                 if (aircraftTAS > 1.0)
                                 {
                                     if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Player " + player.Name() + " is in moving aircraft and is about to enter pilot seat again " + aircraft.Name());
-                                    BaseMission.Timeout((player.Ping() + 50) * 0.001, () =>
+                                    baseMission.Timeout((player.Ping() + 50) * 0.001, () =>
                                     {
                                         player.PlaceEnter(actor, 0);
                                     });
                                     Player[] recepients = { player };
-                                    BaseMission.GamePlay.gpHUDLogCenter(recepients, "Bailout, crash or land!");
+                                    baseMission.GamePlay.gpHUDLogCenter(recepients, "Bailout, crash or land!");
                                     return;
                                 }
                                 else
@@ -262,7 +262,7 @@ public class CMissionCommon
                                     if (primIdx >= 0)
                                     {
                                         // have to generate new on leave event and do stuff there
-                                        BaseMission.Timeout(1, () =>
+                                        baseMission.Timeout(1, () =>
                                         {
                                             player.PlaceLeave(primIdx);
                                         });
@@ -271,7 +271,7 @@ public class CMissionCommon
                                     if (secIdx >= 0)
                                     {
                                         // have to generate new on leave event and do stuff there
-                                        BaseMission.Timeout(1, () =>
+                                        baseMission.Timeout(1, () =>
                                         {
                                             player.PlaceLeave(secIdx);
                                         });
@@ -296,7 +296,7 @@ public class CMissionCommon
                         }
                         else //if (!isNoPlayersInAircraft && (placeIndex != 0))
                         {
-                            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("At least some one is still in aircraft and player " + player.Name() + " not a pilot. No need to call KillDisusedPlanes.OnPlaceLeave(). Just free place");
+                            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("At least some one is still in aircraft and player " + player.Name() + " not a pilot. No need to call killDisusedPlanes.OnPlaceLeave(). Just free place");
                             return;
                         }
                         // Player is assigned to aircraft... have to be resigned
@@ -336,7 +336,7 @@ public class CMissionCommon
                 {
                     AiAircraft aircraft = actor as AiAircraft;
                     if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Player " + player.Name() + " is trying to leave aircraft " + aircraft.Name());
-                    bool isNoPlayersInAircraft = m_KillDisusedPlanes.IsNoPLayersInAircraft(aircraft);
+                    bool isNoPlayersInAircraft = killDisusedPlanes.IsNoPLayersInAircraft(aircraft);
                     if ((placeIndex == 0) && !isNoPlayersInAircraft)
                     {
                         int primIdx = player.PlacePrimary();
@@ -345,7 +345,7 @@ public class CMissionCommon
                         if (primIdx >= 0)
                         {
                             // have to generate new on leave event and do stuff there
-                            BaseMission.Timeout(1, () =>
+                            baseMission.Timeout(1, () =>
                             {
                                 player.PlaceLeave(primIdx);
                             });
@@ -354,7 +354,7 @@ public class CMissionCommon
                         if (secIdx >= 0)
                         {
                             // have to generate new on leave event and do stuff there
-                            BaseMission.Timeout(1, () =>
+                            baseMission.Timeout(1, () =>
                             {
                                 player.PlaceLeave(secIdx);
                             });
@@ -376,8 +376,8 @@ public class CMissionCommon
                     }
                 }
             }
-            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("m_KillDisusedPlanes.OnPlaceLeave()");
-            m_KillDisusedPlanes.OnPlaceLeave(player, actor, placeIndex);
+            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("killDisusedPlanes.OnPlaceLeave()");
+            killDisusedPlanes.OnPlaceLeave(player, actor, placeIndex);
         }
         catch (Exception e)
         {
@@ -400,9 +400,9 @@ public class CMissionCommon
         try
         {
             if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Started search of airgroup with name: " + aiAirgroupName);
-            for (int i = 0; i < BaseMission.GamePlay.gpArmies().Length; i++)
+            for (int i = 0; i < baseMission.GamePlay.gpArmies().Length; i++)
             {
-                AiAirGroup[] grs = BaseMission.GamePlay.gpAirGroups(BaseMission.GamePlay.gpArmies()[i]);
+                AiAirGroup[] grs = baseMission.GamePlay.gpAirGroups(baseMission.GamePlay.gpArmies()[i]);
                 if (grs != null)
                 {
                     for (int j = 0; j < grs.Length; j++)
@@ -418,7 +418,7 @@ public class CMissionCommon
                         }
                         catch (Exception ex)
                         {
-                            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Group idx=" + j.ToString() + " in army=" + BaseMission.GamePlay.gpArmies()[i].ToString() + " skipped due to exception.\n" + ex.ToString());
+                            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Group idx=" + j.ToString() + " in army=" + baseMission.GamePlay.gpArmies()[i].ToString() + " skipped due to exception.\n" + ex.ToString());
                         }
                     }
                 }
@@ -477,10 +477,10 @@ public class CMissionCommon
     public CMissionMapInfo missionMapInfo = new CMissionMapInfo();
     private void PrepareMissionMapInfo()
     {
-        string msMyFolder = Path.GetDirectoryName(BaseMission.sPathMyself);
+        string msMyFolder = Path.GetDirectoryName(baseMission.sPathMyself);
         if (DEBUG_MESSAGES && CLog.IsInitialized) { CLog.Write("Mission file path: " + msMyFolder); }
-        if (DEBUG_MESSAGES && CLog.IsInitialized) { CLog.Write("Mission file name: " + BaseMission.MissionFileName); }
-        ISectionFile sf = BaseMission.GamePlay.gpLoadSectionFile(msMyFolder + "\\" + BaseMission.MissionFileName);
+        if (DEBUG_MESSAGES && CLog.IsInitialized) { CLog.Write("Mission file name: " + baseMission.MissionFileName); }
+        ISectionFile sf = baseMission.GamePlay.gpLoadSectionFile(msMyFolder + "\\" + baseMission.MissionFileName);
         
         // Get map name
         missionMapInfo.Name = sf.get("MAIN", "MAP");
@@ -513,7 +513,7 @@ public class CMissionCommon
         }
         
         // Get armies info
-        int[] armies = BaseMission.GamePlay.gpArmies();
+        int[] armies = baseMission.GamePlay.gpArmies();
         if (armies.Length > 0)
         {
             missionMapInfo.Armies = new CArmy[armies.Length];
@@ -522,7 +522,7 @@ public class CMissionCommon
         {
             missionMapInfo.Armies[i] = new CArmy();
             missionMapInfo.Armies[i].id = armies[i];
-            missionMapInfo.Armies[i].name = BaseMission.GamePlay.gpArmyName(armies[i]);
+            missionMapInfo.Armies[i].name = baseMission.GamePlay.gpArmyName(armies[i]);
             missionMapInfo.Armies[i].countries = "";
             string search_line = "Army " + armies[i];
             string countries = SearchInSectionFile(ref sf,"main",search_line);
@@ -582,18 +582,18 @@ public class CMissionCommon
         public int Army;
     }
 
-    private CNeutralAirportsByArmies[] NeutralAirportsByArmies = null;
+    private CNeutralAirportsByArmies[] neutralAirportsByArmies = null;
 
     public void PrepareAirports()
     {
-        if ((BaseMission.GamePlay.gpAirports().Length == 0) || (BaseMission.GamePlay.gpArmies().Length == 0))
+        if ((baseMission.GamePlay.gpAirports().Length == 0) || (baseMission.GamePlay.gpArmies().Length == 0))
         {
             return;
         }
 
         // Get list of all airfields on the map
-        AiAirport[] missionAirportsSortedByArmy = new AiAirport[BaseMission.GamePlay.gpAirports().Length];
-        BaseMission.GamePlay.gpAirports().CopyTo(missionAirportsSortedByArmy, 0);
+        AiAirport[] missionAirportsSortedByArmy = new AiAirport[baseMission.GamePlay.gpAirports().Length];
+        baseMission.GamePlay.gpAirports().CopyTo(missionAirportsSortedByArmy, 0);
 
         AiAirport aiAirport;
         // Sort by army
@@ -663,8 +663,8 @@ public class CMissionCommon
         //
         // Get list of all SpawnAreas on the map
 
-        AiBirthPlace[] missionBirthplacesSortedByArmy = new AiBirthPlace[BaseMission.GamePlay.gpBirthPlaces().Length];
-        BaseMission.GamePlay.gpBirthPlaces().CopyTo(missionBirthplacesSortedByArmy, 0);
+        AiBirthPlace[] missionBirthplacesSortedByArmy = new AiBirthPlace[baseMission.GamePlay.gpBirthPlaces().Length];
+        baseMission.GamePlay.gpBirthPlaces().CopyTo(missionBirthplacesSortedByArmy, 0);
 
         AiBirthPlace aiBirthPlace;
         // Sort by army
@@ -726,22 +726,22 @@ public class CMissionCommon
         //
         // Create array of neautral airports lists by armies
         //
-        int missionArmiesCount = BaseMission.GamePlay.gpArmies().Length + 1;// +1 for Neutral Army with index 0.
-        NeutralAirportsByArmies = new CNeutralAirportsByArmies[missionArmiesCount];
+        int missionArmiesCount = baseMission.GamePlay.gpArmies().Length + 1;// +1 for Neutral Army with index 0.
+        neutralAirportsByArmies = new CNeutralAirportsByArmies[missionArmiesCount];
         // fill army values
-        NeutralAirportsByArmies[0] = new CNeutralAirportsByArmies();
-        NeutralAirportsByArmies[0].Army = 0; // this one is always neutral armie with index 0.
+        neutralAirportsByArmies[0] = new CNeutralAirportsByArmies();
+        neutralAirportsByArmies[0].Army = 0; // this one is always neutral armie with index 0.
         for (int armyIdx = 1; armyIdx < missionArmiesCount; armyIdx++)
         {
-            NeutralAirportsByArmies[armyIdx] = new CNeutralAirportsByArmies();
-            NeutralAirportsByArmies[armyIdx].Army = BaseMission.GamePlay.gpArmies()[armyIdx - 1];// remember we added +1 to gpArmies().Length for missionArmiesCount
+            neutralAirportsByArmies[armyIdx] = new CNeutralAirportsByArmies();
+            neutralAirportsByArmies[armyIdx].Army = baseMission.GamePlay.gpArmies()[armyIdx - 1];// remember we added +1 to gpArmies().Length for missionArmiesCount
         }
         //
         // debug printing
         //
         if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("---Army values filled.");
 
-        // fill airfields NeutralAirportsByArmies from list of all mission neutral airports
+        // fill airfields neutralAirportsByArmies from list of all mission neutral airports
         for (int missionNeutralAirportIdx = 0; missionNeutralAirportIdx <= missionAirportIndexesByArmy[0].LastIdx; missionNeutralAirportIdx++)
         {
             AiAirport missionNeutralAirport = missionAirportsSortedByArmy[missionNeutralAirportIdx];
@@ -757,12 +757,12 @@ public class CMissionCommon
                     if (missionNeutralAirportPos.distanceLinf(ref nonNeutralAirportPos) < missionNeutralAirport.CoverageR())
                     {
                         int nabaIdx;
-                        for (nabaIdx = 1; nabaIdx < NeutralAirportsByArmies.Length - 1; nabaIdx++)
+                        for (nabaIdx = 1; nabaIdx < neutralAirportsByArmies.Length - 1; nabaIdx++)
                         {
-                            if (missionAirportIndexesByArmy[armyIdx].Army == NeutralAirportsByArmies[nabaIdx].Army)
+                            if (missionAirportIndexesByArmy[armyIdx].Army == neutralAirportsByArmies[nabaIdx].Army)
                                 break;
                         }
-                        NeutralAirportsByArmies[nabaIdx].aiAirports.Add(missionNeutralAirport);
+                        neutralAirportsByArmies[nabaIdx].aiAirports.Add(missionNeutralAirport);
                         nonNeutralAirportFound = true;
                         break;
                     }
@@ -783,12 +783,12 @@ public class CMissionCommon
                         if (missionNeutralAirportPos.distanceLinf(ref nonNeutralBirthPlacePos) < missionNeutralAirport.CoverageR())
                         {
                             int nabaIdx;
-                            for (nabaIdx = 1; nabaIdx < NeutralAirportsByArmies.Length - 1; nabaIdx++)
+                            for (nabaIdx = 1; nabaIdx < neutralAirportsByArmies.Length - 1; nabaIdx++)
                             {
-                                if (missionBirthPlacesIndexesByArmy[armyIdx].Army == NeutralAirportsByArmies[nabaIdx].Army)
+                                if (missionBirthPlacesIndexesByArmy[armyIdx].Army == neutralAirportsByArmies[nabaIdx].Army)
                                     break;
                             }
-                            NeutralAirportsByArmies[nabaIdx].aiAirports.Add(missionNeutralAirport);
+                            neutralAirportsByArmies[nabaIdx].aiAirports.Add(missionNeutralAirport);
                             nonNeutralAirportFound = true;
                             break;
                         }
@@ -800,7 +800,7 @@ public class CMissionCommon
             // this airport is neutral
             if (!nonNeutralAirportFound)
             {
-                NeutralAirportsByArmies[0].aiAirports.Add(missionNeutralAirport);
+                neutralAirportsByArmies[0].aiAirports.Add(missionNeutralAirport);
             }
         }
         //
@@ -808,12 +808,12 @@ public class CMissionCommon
         //
         if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("Neutral airfields by army.");
 
-        for (int armyIdx = 0; armyIdx < NeutralAirportsByArmies.Length; armyIdx++)
+        for (int armyIdx = 0; armyIdx < neutralAirportsByArmies.Length; armyIdx++)
         {
-            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("---List of airports for Army=" + NeutralAirportsByArmies[armyIdx].Army.ToString());
-            for (int airportIdx = 0; airportIdx < NeutralAirportsByArmies[armyIdx].aiAirports.Count; airportIdx++)
+            if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("---List of airports for Army=" + neutralAirportsByArmies[armyIdx].Army.ToString());
+            for (int airportIdx = 0; airportIdx < neutralAirportsByArmies[armyIdx].aiAirports.Count; airportIdx++)
             {
-                if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write(NeutralAirportsByArmies[armyIdx].aiAirports[airportIdx].Name());
+                if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write(neutralAirportsByArmies[armyIdx].aiAirports[airportIdx].Name());
             }
         }
     }
@@ -864,16 +864,16 @@ public class CMissionCommon
             Point3d aircraftPos = aircraft.Pos();
             int aircraftArmy = aircraft.Army();
 
-            for (int armyIdx = 0; armyIdx < NeutralAirportsByArmies.Length; armyIdx++)
+            for (int armyIdx = 0; armyIdx < neutralAirportsByArmies.Length; armyIdx++)
             {
-                for (int airportIdx = 0; airportIdx < NeutralAirportsByArmies[armyIdx].aiAirports.Count; airportIdx++)
+                for (int airportIdx = 0; airportIdx < neutralAirportsByArmies[armyIdx].aiAirports.Count; airportIdx++)
                 {
-                    AiAirport airportFromList = NeutralAirportsByArmies[armyIdx].aiAirports[airportIdx];
+                    AiAirport airportFromList = neutralAirportsByArmies[armyIdx].aiAirports[airportIdx];
                     Point3d airportFromListPos = airportFromList.Pos();
                     double distanceToAirportFromList = airportFromListPos.distanceLinf(ref aircraftPos);
                     if (distanceToAirportFromList < (airportFromList.CoverageR() + 1000.0))
                     {
-                        int airportFromListArmy = NeutralAirportsByArmies[armyIdx].Army;
+                        int airportFromListArmy = neutralAirportsByArmies[armyIdx].Army;
                         if (airportFromListArmy == aircraftArmy)
                         {
                             if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write(aircraft.Name() + " is on friendly airfiled " + airportFromList.Name() + " distance " + distanceToAirportFromList.ToString());
@@ -893,7 +893,7 @@ public class CMissionCommon
                 }
             }
 
-            if (BaseMission.GamePlay.gpLandType(aircraftPos.x, aircraftPos.y) == LandTypes.WATER)
+            if (baseMission.GamePlay.gpLandType(aircraftPos.x, aircraftPos.y) == LandTypes.WATER)
             {
                 if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write(aircraft.Name() + " is ditched in to the water.");
                 return EAircraftLocation.DitchedSea;
@@ -991,7 +991,7 @@ public class CMissionCommon
         }
     }
 
-    List<PlayerAssignedToAiAircraft> PlayersAssignedAircrafts = new List<PlayerAssignedToAiAircraft>();
+    private List<PlayerAssignedToAiAircraft> playersAssignedAircrafts = new List<PlayerAssignedToAiAircraft>();
 
     public void AssignPlayerToAiAircraft(Player player, AiAircraft aircraft)
     {
@@ -1001,12 +1001,12 @@ public class CMissionCommon
         if (playerIdx < 0)
         {
             //add new
-            PlayersAssignedAircrafts.Add(new PlayerAssignedToAiAircraft(player, aircraft));
+            playersAssignedAircrafts.Add(new PlayerAssignedToAiAircraft(player, aircraft));
         }
         else
         {
             // replce old by new
-            PlayersAssignedAircrafts[playerIdx].aircraft = aircraft;
+            playersAssignedAircrafts[playerIdx].aircraft = aircraft;
         }
     }
 
@@ -1015,7 +1015,7 @@ public class CMissionCommon
         int playerIdx = GetPlayerAssignedAiAircraftIdx(player);
         if (playerIdx >= 0)
         {
-            if (PlayersAssignedAircrafts[playerIdx].aircraft.Equals(aircraft))
+            if (playersAssignedAircrafts[playerIdx].aircraft.Equals(aircraft))
             {
                 return true;
             }
@@ -1025,9 +1025,9 @@ public class CMissionCommon
 
     public int GetPlayerAssignedAiAircraftIdx(Player player)
     {
-        for (int i = 0; i < PlayersAssignedAircrafts.Count; i++)
+        for (int i = 0; i < playersAssignedAircrafts.Count; i++)
         {
-            if (PlayersAssignedAircrafts[i].player.Equals(player))
+            if (playersAssignedAircrafts[i].player.Equals(player))
             {
                 return i;
             }
@@ -1038,11 +1038,11 @@ public class CMissionCommon
 
     public void DropPlayerFromAssignedAiAircraft(Player player)
     {
-        for (int i = 0; i < PlayersAssignedAircrafts.Count; i++)
+        for (int i = 0; i < playersAssignedAircrafts.Count; i++)
         {
-            if (PlayersAssignedAircrafts[i].player.Equals(player))
+            if (playersAssignedAircrafts[i].player.Equals(player))
             {
-                PlayersAssignedAircrafts.RemoveAt(i);
+                playersAssignedAircrafts.RemoveAt(i);
             }
         }
     }
@@ -1062,20 +1062,20 @@ public class CMissionCommon
             this.fuelPctBeforeDefuel = fuelPctBeforeDefuel;
         }
     }
-    public List<DefueledAircraft> DefueledAcircrafts = new List<DefueledAircraft>();
+    public List<DefueledAircraft> defueledAcircrafts = new List<DefueledAircraft>();
 
     public bool IsDefueledAircraft(AiAircraft aiAircraft, bool refuelAndDrop)
     {
         if (aiAircraft != null)
         {
-            for (int i = 0; i < DefueledAcircrafts.Count; i++)
+            for (int i = 0; i < defueledAcircrafts.Count; i++)
             {
-                if (DefueledAcircrafts[i].aircraft.Equals(aiAircraft))
+                if (defueledAcircrafts[i].aircraft.Equals(aiAircraft))
                 {
                     if (refuelAndDrop)
                     {
-                        DefueledAcircrafts[i].aircraft.RefuelPlane(DefueledAcircrafts[i].fuelPctBeforeDefuel);
-                        DefueledAcircrafts.RemoveAt(i);
+                        defueledAcircrafts[i].aircraft.RefuelPlane(defueledAcircrafts[i].fuelPctBeforeDefuel);
+                        defueledAcircrafts.RemoveAt(i);
                     }
                     return true;
                 }
