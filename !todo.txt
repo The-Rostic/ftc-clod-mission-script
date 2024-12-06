@@ -6,4 +6,6 @@
 	+ add ships tracking;
 	+ add frontlines markers.
 - Add thread with socket and protocol that provides capability to send data by client request about all airgroups and other mission data.
-- Added "Pip-Squeak" feature through TBA-4 menu. Feature should be available only for "Red" (RAF) army. Player can activate feature only on the ground at home base only. When activated, his aircraft marked as "identified as friendly" for "Radar Tool" through network.
+- Add "Pip-Squeak" feature through TBA-4 menu. Feature should be available only for "Red" (RAF) army. Player can activate feature only on the ground at home base only. When activated, his aircraft marked as "identified as friendly" for "Radar Tool" through network.
+- Add "pilot fate" feature.
+- Add "IFF-SOS" feature throught TAB-4 menu to increase chances of pilot survival for "pilot fate" feature.
