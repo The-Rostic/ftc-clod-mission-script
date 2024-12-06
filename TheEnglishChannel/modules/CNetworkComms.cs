@@ -65,6 +65,8 @@ public class CNetworkComms
                 if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("RadarDataStart\n");
                 lock (worldStateLock)
                 {
+                    bool at_lest_one_entry_created = false;
+
                     worldState.Clear();
                     // JSON first open bracket
                     worldState.Append("{\n");
@@ -110,6 +112,7 @@ public class CNetworkComms
                     // open array CJsonIds.ARMIES
                     worldState.Append("\"" + CJsonIds.ARMIES + "\":[\n");
                     CMissionCommon.CArmy[] armies = missionCommon.missionMapInfo.Armies;
+                    at_lest_one_entry_created = false;
                     for (int i = 0; i < armies.Length; i++)
                     {
                         worldState.Append("{");
@@ -117,9 +120,13 @@ public class CNetworkComms
                         worldState.Append(MakeJsonStringEntry(CJsonIds.ARMIES_NAME, armies[i].name, JSONending.COMA));
                         worldState.Append(MakeJsonStringEntry(CJsonIds.ARMIES_COUNTRIES, armies[i].countries, JSONending.NONE));
                         worldState.Append("},\n");
+                        at_lest_one_entry_created = true;
                     }
-                    worldState.Length-=2;// remove trailing coma
-                    worldState.Append("\n");// restore line break
+                    if (at_lest_one_entry_created)
+                    {
+                        worldState.Length -= 2;// remove trailing coma
+                        worldState.Append("\n");// restore line break
+                    }
                     // close array CJsonIds.ARMIES
                     worldState.Append("],\n");
                     
@@ -127,6 +134,7 @@ public class CNetworkComms
                     //Get aircrafts
                     // open array CJsonIds.AC_AIRCRAFTS
                     worldState.Append("\"" + CJsonIds.AC_AIRCRAFTS + "\":[\n");
+                    at_lest_one_entry_created = false;
                     for (int i = 0; i < armies.Length; i++)
                     {
                         int army_id = armies[i].id;
@@ -159,6 +167,7 @@ public class CNetworkComms
                                                 worldState.Append(MakeJsonIntEntry(CJsonIds.AC_Y, (int)pos.y, JSONending.COMA));
                                                 worldState.Append(MakeJsonIntEntry(CJsonIds.AC_Z, (int)pos.z, JSONending.NONE));
                                                 worldState.Append("},\n");
+                                                at_lest_one_entry_created = true;
                                             }
                                         }
                                     }
@@ -166,8 +175,11 @@ public class CNetworkComms
                             }
                         }
                     }
-                    worldState.Length -= 2;// remove trailing coma
-                    worldState.Append("\n");// restrore line break
+                    if (at_lest_one_entry_created)
+                    {
+                        worldState.Length -= 2;// remove trailing coma
+                        worldState.Append("\n");// restrore line break
+                    }
                     // close array CJsonIds.AC_AIRCRAFTS
                     worldState.Append("]\n");
 
