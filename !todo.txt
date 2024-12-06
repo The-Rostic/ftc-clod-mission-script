@@ -1,3 +1,5 @@
+- Fix trailing comas still appearing in JSON world state object (probably due to empty groups without aricrafts).
+
 - Add refuel/rearm feature through TAB-4 menu. Configurable to work in radius of friendly airfields and spawnareas or by list of coorditanes where decorations of servicable area will be created dynamically by script.
 
 - Move world state data collecting to separate thread due to now it can take about 30mS.
