@@ -1,11 +1,21 @@
 - Add refuel/rearm feature through TAB-4 menu. Configurable to work in radius of friendly airfields and spawnareas or by list of coorditanes where decorations of servicable area will be created dynamically by script.
+
 - Move world state data collecting to separate thread due to now it can take about 30mS.
+
 - Add next data to JSON world state object:
-  + radar coverage area with radar position;
-	+ ground observer coverage;
 	+ add ships tracking;
-	+ add frontlines markers.
+	+ add frontlines markers (ground observer coverage);
+	+ radar coverage area with radar position;
+    We will have to create sub-mission that will contain AI air groups. Each air group has flight plan that consist from waypoints. In FMB mission creator will have to draw radar coverage by simply creating flight plan.
+    * Single air group will represent one radar.
+    * First way point of flight plan have to be over radar position.
+    * Optionally, maybe, any static objects found in main mission in 100m radius at mission start will represent radar health. So, radar coverage can be reduced (or radar can be completely shutdown) due to damage dynamically.
+    * So, mission script will just read that mission file like a regular section file and get radar coverage from it.
+
 - Add thread with socket and protocol that provides capability to send data by client request about all airgroups and other mission data.
+
 - Add "Pip-Squeak" feature through TBA-4 menu. Feature should be available only for "Red" (RAF) army. Player can activate feature only on the ground at home base only. When activated, his aircraft marked as "identified as friendly" for "Radar Tool" through network.
+
 - Add "pilot fate" feature.
+
 - Add "IFF-SOS" feature throught TAB-4 menu to increase chances of pilot survival for "pilot fate" feature.
