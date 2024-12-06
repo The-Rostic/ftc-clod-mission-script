@@ -19,7 +19,7 @@ public class CNetworkComms
     private const bool DEBUG_MESSAGES = true;
     private AMission baseMission = null;
     private CMissionCommon missionCommon = null;
-    // Example of serverState. All coordinates, distances and heights in meters.
+    // Example of worldState. All coordinates, distances and heights in meters.
     //
     // {
     //  "world_state_idx":1234567,
@@ -37,16 +37,16 @@ public class CNetworkComms
     //    { "id":"1:BoB_LW_JG26_I.201","army":2,"model":"Bf 109 E-4","eng":1,"sta":1,"x":286362,"y":210816,"z":1000}
     //  ]
     // }
-    private readonly object serverStateLock = new object();
-    private StringBuilder serverState = new StringBuilder();
-    private long serverStateIdx = 0; // increments every time serverState updated.
+    private StringBuilder worldState = new StringBuilder();
+    private readonly object worldStateLock = new object();
+    private long worldStateIdx = 0; // increments every time worldState updated.
     public CNetworkComms(CMissionCommon mission_common)
     {
         baseMission = mission_common.baseMission;
         missionCommon = mission_common;
-        serverState.Capacity = 1024 * 1024; // I doubt real data will ever be such big
+        worldState.Capacity = 1024 * 1024; // I doubt real data will ever be such big
 
-        // run to fill "serverState" with data
+        // run to fill "worldState" with data
         MissionScriptPoll();
     }
     public void OnBattleStoped() { 
@@ -63,20 +63,20 @@ public class CNetworkComms
             try
             {
                 if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("RadarDataStart\n");
-                lock (serverStateLock)
+                lock (worldStateLock)
                 {
-                    serverState.Clear();
+                    worldState.Clear();
                     // JSON first open bracket
-                    serverState.Append("{\n");
+                    worldState.Append("{\n");
 
                     ///////////////////////
                     // World state incremental index
-                    serverStateIdx++;
-                    serverState.Append(MakeJsonIntEntry(CJsonIds.WORLD_STATE_IDX, serverStateIdx, JSONending.BOTH));
+                    worldStateIdx++;
+                    worldState.Append(MakeJsonIntEntry(CJsonIds.WORLD_STATE_IDX, worldStateIdx, JSONending.BOTH));
 
                     ///////////////////////
                     // Map name
-                    serverState.Append(MakeJsonStringEntry(CJsonIds.MAP_NAME, missionCommon.missionMapInfo.Name, JSONending.BOTH));
+                    worldState.Append(MakeJsonStringEntry(CJsonIds.MAP_NAME, missionCommon.missionMapInfo.Name, JSONending.BOTH));
 
                     ///////////////////////
                     // Map time
@@ -90,50 +90,49 @@ public class CNetworkComms
                         + ":" + mt_minutes.ToString().PadLeft(2, '0')
                         + ":" + mt_seconds.ToString().PadLeft(2, '0')
                         + "." + mt_millisec.ToString().PadLeft(3, '0');
-                    serverState.Append(MakeJsonStringEntry(CJsonIds.MISSION_TIME, missionTime, JSONending.BOTH));
+                    worldState.Append(MakeJsonStringEntry(CJsonIds.MISSION_TIME, missionTime, JSONending.BOTH));
 
                     ///////////////////////
                     // Map battle area
                     // open class CJsonIds.BATTLE_AREA
-                    serverState.Append("\"" + CJsonIds.BATTLE_AREA + "\":{"); 
+                    worldState.Append("\"" + CJsonIds.BATTLE_AREA + "\":{"); 
                     CMissionCommon.CBattleArea battleArea = missionCommon.missionMapInfo.BattleArea;
-                    serverState.Append(MakeJsonIntEntry(CJsonIds.BATTLE_AREA_X, battleArea.x, JSONending.COMA));
-                    serverState.Append(MakeJsonIntEntry(CJsonIds.BATTLE_AREA_Y, battleArea.y, JSONending.COMA));
-                    serverState.Append(MakeJsonIntEntry(CJsonIds.BATTLE_AREA_W, battleArea.w, JSONending.COMA));
-                    serverState.Append(MakeJsonIntEntry(CJsonIds.BATTLE_AREA_H, battleArea.h, JSONending.COMA));
-                    serverState.Append(MakeJsonIntEntry(CJsonIds.BATTLE_AREA_SECTSZ, battleArea.sector_size, JSONending.NONE));
+                    worldState.Append(MakeJsonIntEntry(CJsonIds.BATTLE_AREA_X, battleArea.x, JSONending.COMA));
+                    worldState.Append(MakeJsonIntEntry(CJsonIds.BATTLE_AREA_Y, battleArea.y, JSONending.COMA));
+                    worldState.Append(MakeJsonIntEntry(CJsonIds.BATTLE_AREA_W, battleArea.w, JSONending.COMA));
+                    worldState.Append(MakeJsonIntEntry(CJsonIds.BATTLE_AREA_H, battleArea.h, JSONending.COMA));
+                    worldState.Append(MakeJsonIntEntry(CJsonIds.BATTLE_AREA_SECTSZ, battleArea.sector_size, JSONending.NONE));
                     // close class CJsonIds.BATTLE_AREA
-                    serverState.Append("},\n");
+                    worldState.Append("},\n");
 
                     ///////////////////////
                     // Mission armies
                     // open array CJsonIds.ARMIES
-                    serverState.Append("\"" + CJsonIds.ARMIES + "\":[\n");
+                    worldState.Append("\"" + CJsonIds.ARMIES + "\":[\n");
                     CMissionCommon.CArmy[] armies = missionCommon.missionMapInfo.Armies;
-                    int last_i = armies.Length - 1;
                     for (int i = 0; i < armies.Length; i++)
                     {
-                        serverState.Append("{");
-                        serverState.Append(MakeJsonIntEntry(CJsonIds.ARMIES_ID, armies[i].id, JSONending.COMA));
-                        serverState.Append(MakeJsonStringEntry(CJsonIds.ARMIES_NAME, armies[i].name, JSONending.COMA));
-                        serverState.Append(MakeJsonStringEntry(CJsonIds.ARMIES_COUNTRIES, armies[i].countries, JSONending.NONE));
-                        serverState.Append(((i == last_i)? "}\n" : "},\n"));
+                        worldState.Append("{");
+                        worldState.Append(MakeJsonIntEntry(CJsonIds.ARMIES_ID, armies[i].id, JSONending.COMA));
+                        worldState.Append(MakeJsonStringEntry(CJsonIds.ARMIES_NAME, armies[i].name, JSONending.COMA));
+                        worldState.Append(MakeJsonStringEntry(CJsonIds.ARMIES_COUNTRIES, armies[i].countries, JSONending.NONE));
+                        worldState.Append("},\n");
                     }
+                    worldState.Length-=2;// remove trailing coma
+                    worldState.Append("\n");// restore line break
                     // close array CJsonIds.ARMIES
-                    serverState.Append("],\n");
+                    worldState.Append("],\n");
                     
                     ///////////////////////
                     //Get aircrafts
                     // open array CJsonIds.AC_AIRCRAFTS
-                    serverState.Append("\"" + CJsonIds.AC_AIRCRAFTS + "\":[\n");
-                    last_i = armies.Length - 1;
+                    worldState.Append("\"" + CJsonIds.AC_AIRCRAFTS + "\":[\n");
                     for (int i = 0; i < armies.Length; i++)
                     {
                         int army_id = armies[i].id;
                         AiAirGroup[] aiAirGroups = baseMission.GamePlay.gpAirGroups(army_id);
                         if (aiAirGroups != null)
                         {
-                            int last_j = aiAirGroups.Length - 1;
                             for (int j = 0; j < aiAirGroups.Length; j++)
                             {
                                 if (aiAirGroups[j] != null)
@@ -141,7 +140,6 @@ public class CNetworkComms
                                     AiActor[] actors = aiAirGroups[j].GetItems();
                                     if (actors != null)
                                     {
-                                        int last_k = actors.Length - 1;
                                         for (int k = 0; k < actors.Length; k++)
                                         {
                                             if (actors[k] != null)
@@ -151,16 +149,16 @@ public class CNetworkComms
                                                 int stations = ((AiAircraft)actors[k]).Places();
                                                 int engines = aiAirGroups[j].aircraftEnginesNum();
                                                 string ac_model = ((AiAircraft)actors[k]).VariantName();
-                                                serverState.Append("{");
-                                                serverState.Append(MakeJsonStringEntry(CJsonIds.AC_ID, actorName, JSONending.COMA));
-                                                serverState.Append(MakeJsonIntEntry(CJsonIds.AC_ARMY, army_id, JSONending.COMA));
-                                                serverState.Append(MakeJsonStringEntry(CJsonIds.AC_MODEL, ac_model, JSONending.COMA));
-                                                serverState.Append(MakeJsonIntEntry(CJsonIds.AC_ENGINES_CNT, engines, JSONending.COMA));
-                                                serverState.Append(MakeJsonIntEntry(CJsonIds.AC_CREW_STATIONS_CNT, stations, JSONending.COMA));
-                                                serverState.Append(MakeJsonIntEntry(CJsonIds.AC_X, (int)pos.x, JSONending.COMA));
-                                                serverState.Append(MakeJsonIntEntry(CJsonIds.AC_Y, (int)pos.y, JSONending.COMA));
-                                                serverState.Append(MakeJsonIntEntry(CJsonIds.AC_Z, (int)pos.z, JSONending.NONE));
-                                                serverState.Append((((i == last_i) && (j == last_j) && (k == last_k)) ? "}\n" : "},\n"));
+                                                worldState.Append("{");
+                                                worldState.Append(MakeJsonStringEntry(CJsonIds.AC_ID, actorName, JSONending.COMA));
+                                                worldState.Append(MakeJsonIntEntry(CJsonIds.AC_ARMY, army_id, JSONending.COMA));
+                                                worldState.Append(MakeJsonStringEntry(CJsonIds.AC_MODEL, ac_model, JSONending.COMA));
+                                                worldState.Append(MakeJsonIntEntry(CJsonIds.AC_ENGINES_CNT, engines, JSONending.COMA));
+                                                worldState.Append(MakeJsonIntEntry(CJsonIds.AC_CREW_STATIONS_CNT, stations, JSONending.COMA));
+                                                worldState.Append(MakeJsonIntEntry(CJsonIds.AC_X, (int)pos.x, JSONending.COMA));
+                                                worldState.Append(MakeJsonIntEntry(CJsonIds.AC_Y, (int)pos.y, JSONending.COMA));
+                                                worldState.Append(MakeJsonIntEntry(CJsonIds.AC_Z, (int)pos.z, JSONending.NONE));
+                                                worldState.Append("},\n");
                                             }
                                         }
                                     }
@@ -168,19 +166,21 @@ public class CNetworkComms
                             }
                         }
                     }
+                    worldState.Length -= 2;// remove trailing coma
+                    worldState.Append("\n");// restrore line break
                     // close array CJsonIds.AC_AIRCRAFTS
-                    serverState.Append("]\n");
+                    worldState.Append("]\n");
 
 
                     // JSON last close bracket
-                    serverState.Append("}");
-                    string serverStateStr = serverState.ToString();
-                    if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("RadarDataEnd\n\n"); //CLog.Write("RadarDataEnd\n<JSONin>" + serverStateStr + "<JSONout>\n\n");
+                    worldState.Append("}");
+                    string worldStateStr = worldState.ToString();
+                    if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("RadarDataEnd\n\n"); //CLog.Write("RadarDataEnd\n<JSONin>" + worldStateStr + "<JSONout>\n\n");
                     //
                     // zipped Base64 test
                     //
                     if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("RadarData64Start\n");
-                    string base64 = CompressString.StringCompressor.CompressString(serverStateStr);
+                    string base64 = CompressString.StringCompressor.CompressString(worldStateStr);
                     if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("RadarData64End\n<b64in>" + base64 + "<b64out>\n\n");
 
                     if (DEBUG_MESSAGES && CLog.IsInitialized) CLog.Write("RadarDataDecodeStart\n");
