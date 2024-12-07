@@ -5,7 +5,7 @@
 - Move world state data collecting to separate thread due to now it can take about 30mS.
 
 - Add next data to JSON world state object:
-	+ add ships tracking;
+	+ add ships tracking (check if I can filter naval vessels from civilian ships by attached AAA, otherwise have to use list of known naval vessels);
 	+ add frontlines markers (ground observer coverage);
 	+ radar coverage area with radar position;
     We will have to create sub-mission that will contain AI air groups. Each air group has flight plan that consist from waypoints. In FMB mission creator will have to draw radar coverage by simply creating flight plan.
